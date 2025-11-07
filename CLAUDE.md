@@ -74,6 +74,8 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 - ✅ Error alerts
 - ✅ Smooth scroll to results after comparison
 - ✅ Responsive 3-column grid (mobile: 1 col, tablet: 2 col, desktop: 3 col)
+- ✅ Header with authentication state
+- ✅ Login page with email/password and Google OAuth
 
 **Features Working:**
 - ✅ Form validation (requires both start and end)
@@ -83,6 +85,9 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 - ✅ Deep links to all 3 providers (Google Maps, Apple Maps, Waze)
 - ✅ Framer Motion animations (FadeIn/FadeInStagger)
 - ✅ Smooth scroll animation after results load
+- ✅ Buy Me a Coffee link in footer (https://buymeacoffee.com/whichmap)
+- ✅ Firebase Authentication (email/password + Google OAuth)
+- ✅ API route separation for external access (`/api/compare`)
 
 **Theme & Design:**
 - Using **light mode** theme (bg-neutral-50 background)
@@ -94,29 +99,39 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 - React 19
 - Tailwind CSS v4
 - Framer Motion
+- Firebase Authentication v12.5.0
 - Minimal dependencies (no MDX or unnecessary packages)
 
 ### Components Structure
 
 ```
-main/src/
-├── app/
-│   ├── layout.jsx           # Root layout with light theme
-│   └── page.jsx             # Main comparison page (client component)
-├── components/
-│   ├── Border.jsx           # Decorative accent lines (from v1)
-│   ├── Button.jsx           # Primary action button (from v1)
-│   ├── Container.jsx        # Max-width wrapper (from v1)
-│   ├── FadeIn.jsx           # Animation components (from v1, fixed)
-│   ├── ProviderCard.jsx     # Custom result card component
-│   └── TextInput.jsx        # Custom floating label input
-├── lib/
-│   └── helpers.js           # Global debug utilities
-├── types/
-│   └── global.d.ts          # TypeScript declarations for window helpers
-└── styles/
-    ├── tailwind.css         # Tailwind v4 theme config
-    └── base.css             # Mona Sans font
+main/
+├── .env.local.example       # Firebase config template
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── compare/
+│   │   │       └── route.js # API endpoint for route comparison
+│   │   ├── login/
+│   │   │   └── page.jsx     # Authentication page (email/password + Google OAuth)
+│   │   ├── layout.jsx       # Root layout with Header component
+│   │   └── page.jsx         # Main comparison page (client component)
+│   ├── components/
+│   │   ├── Border.jsx       # Decorative accent lines (from v1)
+│   │   ├── Button.jsx       # Primary action button (from v1)
+│   │   ├── Container.jsx    # Max-width wrapper (from v1)
+│   │   ├── FadeIn.jsx       # Animation components (from v1, fixed)
+│   │   ├── Header.jsx       # Navigation with auth state and Sign In/Out
+│   │   ├── ProviderCard.jsx # Custom result card component
+│   │   └── TextInput.jsx    # Custom floating label input
+│   ├── lib/
+│   │   ├── firebase.js      # Firebase initialization and auth
+│   │   └── helpers.js       # Global debug utilities
+│   ├── types/
+│   │   └── global.d.ts      # TypeScript declarations for window helpers
+│   └── styles/
+│       ├── tailwind.css     # Tailwind v4 theme config
+│       └── base.css         # Mona Sans font
 ```
 
 ### Global Helpers System
@@ -161,6 +176,70 @@ Colors optimized for dark mode consoles.
 - Waits for fade animation to complete before scrolling
 - Uses `scrollIntoView({ behavior: 'smooth', block: 'start' })`
 
+### Firebase Authentication System
+
+**Setup & Configuration:**
+- Firebase SDK v12.5.0
+- Configuration via environment variables (`.env.local`)
+- Template provided in `.env.local.example`
+- Project ID: `whichmap-eb2aa`
+
+**Authentication Methods:**
+- ✅ Email/Password sign in and sign up
+- ✅ Google OAuth with popup flow
+- Auto-redirect after successful authentication
+- Persistent auth state across sessions
+
+**Components:**
+- `Header.jsx` - Shows auth state, Sign In/Out buttons, user email
+- `login/page.jsx` - Full authentication UI with toggle between sign in/sign up
+- `lib/firebase.js` - Firebase initialization and auth instance
+
+**Environment Variables Required:**
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+```
+
+**Setup Instructions:**
+See `docs/firebase-setup.md` for complete setup guide including:
+- Firebase Console configuration
+- Enabling authentication methods
+- Usage examples and code patterns
+- Protected route implementation (optional)
+- Troubleshooting guide
+
+### API Route Architecture
+
+**Endpoint:** `POST /api/compare`
+
+The route comparison logic has been separated into a dedicated API route for:
+- External API access (React Native apps, third-party integrations)
+- Future monetization with API key authentication
+- Clean separation of concerns
+
+**Current Implementation:**
+- Accepts POST requests with `{ start, end }` in JSON body
+- Also supports GET requests with query parameters
+- Returns mock data with simulated 1.5s delay
+- Ready for API key validation (TODO comments in place)
+
+**Usage:**
+```javascript
+const response = await fetch('/api/compare', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ start, end })
+})
+const { results } = await response.json()
+```
+
+See `docs/api-usage.md` for complete API documentation including React Native examples.
+
 ### Mock Data Currently in Use
 
 ```javascript
@@ -174,15 +253,27 @@ MOCK_DATA = {
 
 Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
 
-### Ready for Phase 2
+### Phase 2 - Infrastructure ✅ COMPLETE
+
+**Completed:**
+- ✅ API route separation (`/api/compare`)
+- ✅ Firebase Authentication system
+- ✅ Header navigation with auth state
+- ✅ Login page with email/password + Google OAuth
+- ✅ Environment variable configuration
+- ✅ Documentation for Firebase setup and API usage
+
+### Ready for Phase 3
 
 **Next steps to implement:**
 - [ ] Real geocoding (address → coordinates)
 - [ ] Google Maps Directions API integration
 - [ ] Waze API integration (if available)
 - [ ] Error handling for API failures
-- [ ] Caching layer
-- [ ] Rate limiting
+- [ ] Caching layer for geocoding and routes
+- [ ] API key authentication for `/api/compare` endpoint
+- [ ] Rate limiting per user/session
+- [ ] User-specific data (saved routes, favorites - requires Firestore)
 
 All `TODO` comments are marked in code where API integration is needed.
 
@@ -213,14 +304,42 @@ All `TODO` comments are marked in code where API integration is needed.
 
 ## Development Phases
 
-1. **Phase 1 - Core UI**: Form inputs, static cards, loading states, deep links
-2. **Phase 2 - Integrations**: Geocoding, API fetchers, error handling
-3. **Phase 3 - Logic**: Result comparison, fastest route highlighting
-4. **Phase 4 - Deployment**: Public hosting, real-world testing
+1. **Phase 1 - Core UI** ✅: Form inputs, result cards, loading states, animations, deep links
+2. **Phase 2 - Infrastructure** ✅: Authentication, API routes, environment config, documentation
+3. **Phase 3 - Integrations**: Geocoding, API fetchers (Google/Waze), error handling, caching
+4. **Phase 4 - User Features**: Saved routes, favorites, history (Firestore integration)
+5. **Phase 5 - Deployment**: Public hosting, real-world testing, monitoring
 
 ## API Keys and Security
 
-- Secure API keys should never be committed to the repository
-- Google Maps API key is required for Directions API
-- In production, consider server-side API proxy to protect keys
-- Implement rate limiting per user/session to prevent abuse
+**Environment Variables:**
+- All sensitive keys are stored in `.env.local` (gitignored)
+- `.env.local.example` provides a template (safe to commit)
+- Firebase config uses `NEXT_PUBLIC_` prefix (client-safe)
+- Google Maps API key will be server-side only (protect in API routes)
+
+**Security Considerations:**
+- ✅ Firebase credentials in environment variables
+- ✅ `.env.local` excluded from git
+- [ ] API key authentication for `/api/compare` endpoint
+- [ ] Rate limiting per user/session to prevent abuse
+- [ ] Server-side API proxy for Google Maps (protect API keys)
+- [ ] Input validation and sanitization
+
+**Firebase Security:**
+- Authentication state managed client-side
+- Firebase handles token refresh automatically
+- Auth state persists across browser sessions
+- Optional: Implement protected routes (see `docs/firebase-setup.md`)
+
+## Documentation
+
+- `CLAUDE.md` - This file, project overview and status
+- `docs/firebase-setup.md` - Complete Firebase authentication guide
+- `docs/api-usage.md` - API endpoint documentation with examples
+- `docs/v1-*.md` - TailwindCSS v1 template analysis
+- `docs/whichmap-implementation-guide.md` - Implementation roadmap
+
+## Notes
+
+- Always update or modify existing docs/md when you make breaking changes or add new features

@@ -8,28 +8,6 @@ import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
 
-// TODO: Replace with real API data from Google Maps, Apple Maps, and Waze
-const MOCK_DATA = {
-  google: {
-    provider: 'Google Maps',
-    eta: 25,
-    distance: '15.2 mi',
-    unit: 'min'
-  },
-  apple: {
-    provider: 'Apple Maps',
-    eta: 23,
-    distance: '15.1 mi',
-    unit: 'min'
-  },
-  waze: {
-    provider: 'Waze',
-    eta: 27,
-    distance: '15.3 mi',
-    unit: 'min'
-  }
-}
-
 // Generate deep links for each provider
 function generateDeepLink(provider, start, end) {
   const encodedStart = encodeURIComponent(start)
@@ -55,16 +33,25 @@ function findFastestRoute(results) {
   })
 }
 
-// TODO: Fetch data from all providers using real APIs in parallel
+// Fetch route comparison from API
 async function fetchAllProviders(start, end) {
-  // TODO: Remove simulated delay and implement actual API calls
-  await new Promise(resolve => setTimeout(resolve, 1500))
+  const response = await fetch('/api/compare', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // TODO: Add API key header for monetization
+      // 'x-api-key': process.env.NEXT_PUBLIC_API_KEY
+    },
+    body: JSON.stringify({ start, end })
+  })
 
-  return [
-    { ...MOCK_DATA.google, id: 'google' },
-    { ...MOCK_DATA.apple, id: 'apple' },
-    { ...MOCK_DATA.waze, id: 'waze' }
-  ]
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to fetch route data')
+  }
+
+  const data = await response.json()
+  return data.results
 }
 
 export default function Home() {
@@ -204,6 +191,24 @@ export default function Home() {
             </FadeInStagger>
           </div>
         )}
+
+        {/* Footer */}
+        <div className="mt-32 border-t border-neutral-200 pt-10 pb-16">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <p className="text-sm text-neutral-500">
+              Enjoying WhichMap? Support the project
+            </p>
+            <a
+              href="https://buymeacoffee.com/whichmap"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-amber-500"
+            >
+              <span>☕</span>
+              Buy Me a Coffee
+            </a>
+          </div>
+        </div>
       </Container>
     </main>
   )

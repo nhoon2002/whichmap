@@ -1,4 +1,5 @@
 import '@/styles/tailwind.css'
+import { Header } from '@/components/Header'
 
 export const metadata = {
   title: {
@@ -11,7 +12,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full bg-neutral-50 text-base antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <Header />
+        {children}
+      </body>
     </html>
   )
 }
