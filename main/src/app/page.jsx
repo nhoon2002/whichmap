@@ -7,6 +7,7 @@ import { TextInput } from '@/components/TextInput'
 import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
+import { useUserPreferences } from '@/hooks/useUserPreferences'
 
 // Generate deep links for each provider
 function generateDeepLink(provider, start, end) {
@@ -61,6 +62,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const resultsRef = useRef(null)
+  const { preferences } = useUserPreferences()
 
   // Initialize global helpers on mount
   useEffect(() => {
@@ -107,7 +109,12 @@ export default function Home() {
     }
   }
 
-  const fastest = results.length > 0 ? findFastestRoute(results) : null
+  // Filter results based on user preferences
+  const filteredResults = results.filter((result) => {
+    return preferences.navServices[result.id] !== false
+  })
+
+  const fastest = filteredResults.length > 0 ? findFastestRoute(filteredResults) : null
 
   return (
     <main className="flex-auto">
@@ -165,7 +172,7 @@ export default function Home() {
           </FadeIn>
         )}
 
-        {!isLoading && results.length > 0 && (
+        {!isLoading && filteredResults.length > 0 && (
           <div ref={resultsRef} className="mt-24 sm:mt-32">
             <FadeIn animate>
               <h2 className="font-display text-2xl font-semibold text-neutral-950">
@@ -175,7 +182,7 @@ export default function Home() {
 
             <FadeInStagger className="mt-10">
               <dl className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-                {results.map((result) => (
+                {filteredResults.map((result) => (
                   <ProviderCard
                     key={result.id}
                     provider={result.provider}
@@ -188,6 +195,19 @@ export default function Home() {
                 ))}
               </dl>
             </FadeInStagger>
+          </div>
+        )}
+
+        {/* Show message when all services are disabled */}
+        {!isLoading && results.length > 0 && filteredResults.length === 0 && (
+          <div className="mt-24 sm:mt-32">
+            <FadeIn animate>
+              <div className="rounded-lg bg-neutral-50 px-6 py-8 text-center">
+                <p className="text-lg text-neutral-600">
+                  All navigation services are disabled. Enable at least one service in Settings to see results.
+                </p>
+              </div>
+            </FadeIn>
           </div>
         )}
 

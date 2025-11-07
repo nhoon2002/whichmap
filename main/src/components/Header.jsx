@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { Container } from '@/components/Container'
 import { Button } from '@/components/Button'
+import { Settings } from '@/components/Settings'
 
 export function Header() {
   const [user, setUser] = useState(null)
@@ -39,13 +40,17 @@ export function Header() {
             WhichMap
           </Link>
 
-          {/* Auth Actions */}
+          {/* Settings & Auth Actions */}
           <div className="flex items-center gap-4">
+            {/* Settings (always visible) */}
+            <Settings />
+
+            {/* Auth Actions */}
             {loading ? (
               <div className="h-9 w-20 animate-pulse rounded-full bg-neutral-200" />
             ) : user ? (
               <div className="flex items-center gap-4">
-                <span className="text-sm text-neutral-600">
+                <span className="text-sm text-neutral-600 hidden sm:inline">
                   {user.email}
                 </span>
                 <Button onClick={handleSignOut}>

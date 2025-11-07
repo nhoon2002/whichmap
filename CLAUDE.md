@@ -264,7 +264,7 @@ Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
 - ✅ Environment variable configuration
 - ✅ Documentation for Firebase setup and API usage
 
-### Ready for Phase 3
+### Ready for Phase 3 - API Integration
 
 **Next steps to implement:**
 - [ ] Real geocoding (address → coordinates)
@@ -274,9 +274,88 @@ Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
 - [ ] Caching layer for geocoding and routes
 - [ ] API key authentication for `/api/compare` endpoint
 - [ ] Rate limiting per user/session
-- [ ] User-specific data (saved routes, favorites - requires Firestore)
+- [ ] User preferences in Firestore (show/hide specific nav services)
 
 All `TODO` comments are marked in code where API integration is needed.
+
+### Phase 4 - Destination Discovery (Secondary Feature) 💡
+
+**Concept:** "Find something near your destination" - Yelp-style search with comparison UI
+
+**Feature Overview:**
+After comparing travel times, users can search for businesses near their destination (restaurants, coffee shops, gas stations, etc.) and see Yelp + Google Places results side-by-side, using the same comparison UX pattern.
+
+**Implementation Plan:**
+
+1. **Search Interface**
+   - Input: "Find [category] near destination"
+   - Auto-suggest categories: Coffee, Restaurants, Gas, Hotels, Shopping
+   - Optional: Distance filter (0.5mi, 1mi, 2mi)
+
+2. **API Integration**
+   - Yelp Fusion API for business search + reviews
+   - Google Places API for business search + reviews
+   - Call both APIs in parallel with destination coordinates
+
+3. **Business Matching Algorithm**
+   - Match Yelp + Google entries for same business using:
+     - Name similarity (fuzzy matching, Levenshtein distance)
+     - Location proximity (within 50 meters)
+     - Phone number matching (if available)
+     - Address normalization
+   - Display matched businesses side-by-side (like nav comparison)
+   - Show unmatched businesses separately
+
+4. **UI/UX (Similar to route comparison)**
+   - Side-by-side cards showing:
+     - Business name
+     - Yelp rating + review count | Google rating + review count
+     - Price level ($$, $$$)
+     - Distance from destination
+     - Photos
+     - Link to view on Yelp | Link to view on Google Maps
+   - Highlight which platform has better reviews
+
+5. **Data Structure**
+   ```javascript
+   {
+     matched: [
+       {
+         name: "Blue Bottle Coffee",
+         location: { lat, lng },
+         distance: "0.3 mi",
+         yelp: { rating: 4.5, reviewCount: 234, price: "$$" },
+         google: { rating: 4.3, reviewCount: 180, price: "$$" }
+       }
+     ],
+     yelpOnly: [...],
+     googleOnly: [...]
+   }
+   ```
+
+6. **Monetization Opportunities**
+   - Affiliate links to Yelp/Google (referral revenue)
+   - Promoted business listings
+   - Premium API tier for more results
+   - Save favorites feature (requires user account)
+
+7. **User Preferences (Firestore)**
+   - Save preferred search categories
+   - Save favorite businesses
+   - Search history
+   - Personalized recommendations
+
+**Dependencies:**
+- Yelp Fusion API key
+- Google Places API key (same as used for directions)
+- Firestore for user preferences
+- Fuzzy matching library (e.g., fuzzball.js)
+
+**Future Enhancements:**
+- Filter by rating, price, hours (open now)
+- Show business hours, photos, menu (if available)
+- Integration with reservation systems (OpenTable, Resy)
+- "Plan your trip" feature - save destination + businesses
 
 ## Next.js 16 Considerations
 
@@ -334,9 +413,10 @@ All `TODO` comments are marked in code where API integration is needed.
 
 1. **Phase 1 - Core UI** ✅: Form inputs, result cards, loading states, animations, deep links
 2. **Phase 2 - Infrastructure** ✅: Authentication, API routes, environment config, documentation
-3. **Phase 3 - Integrations**: Geocoding, API fetchers (Google/Waze), error handling, caching
-4. **Phase 4 - User Features**: Saved routes, favorites, history (Firestore integration)
-5. **Phase 5 - Deployment**: Public hosting, real-world testing, monitoring
+3. **Phase 3 - API Integration**: Real geocoding, Google Maps/Waze APIs, caching, user preferences (Firestore)
+4. **Phase 4 - Destination Discovery** 💡: Secondary feature - Find businesses near destination (Yelp + Google Places comparison)
+5. **Phase 5 - User Features**: Saved routes, favorites, search history, personalized recommendations
+6. **Phase 6 - Deployment**: Public hosting, real-world testing, monitoring, analytics
 
 ## API Keys and Security
 
