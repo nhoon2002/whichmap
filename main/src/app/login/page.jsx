@@ -72,7 +72,7 @@ export default function LoginPage() {
   return (
     <main className="flex-auto">
       <Container className="mt-24 sm:mt-32 lg:mt-40">
-        <FadeIn>
+        <FadeIn animate>
           <div className="max-w-md mx-auto">
             <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950 text-center">
               {isSignUp ? 'Sign Up' : 'Sign In'}

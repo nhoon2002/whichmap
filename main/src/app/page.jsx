@@ -113,7 +113,7 @@ export default function Home() {
   return (
     <main className="flex-auto">
       <Container className="mt-24 sm:mt-32 lg:mt-40">
-        <FadeIn>
+        <FadeIn animate>
           <div className="max-w-2xl">
             <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950 sm:text-7xl">
               WhichMap
@@ -124,7 +124,7 @@ export default function Home() {
           </div>
         </FadeIn>
 
-        <FadeIn className="mt-16">
+        <FadeIn animate className="mt-16">
           <form onSubmit={handleSubmit}>
             <div className="isolate -space-y-px rounded-2xl bg-white">
               <TextInput
@@ -158,7 +158,7 @@ export default function Home() {
         </FadeIn>
 
         {isLoading && (
-          <FadeIn className="mt-24">
+          <FadeIn animate className="mt-24">
             <div className="text-center">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-neutral-950 border-r-transparent"></div>
               <p className="mt-4 text-lg text-neutral-600">Loading route comparisons...</p>
@@ -168,7 +168,7 @@ export default function Home() {
 
         {!isLoading && results.length > 0 && (
           <div ref={resultsRef} className="mt-24 sm:mt-32">
-            <FadeIn>
+            <FadeIn animate>
               <h2 className="font-display text-2xl font-semibold text-neutral-950">
                 Results
               </h2>
