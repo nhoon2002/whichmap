@@ -16,27 +16,48 @@ Practical guide for building WhichMap using the v1 template components and patte
 ### ✅ Completed (main/ directory)
 
 **Project Setup**
-- Next.js 15 + React 19
+- Next.js 16.0.1 + React 19.2.0 (App Router, Turbopack)
 - Tailwind CSS v4
 - Framer Motion animations
+- Firebase Authentication v12.5.0
+- Node.js 20.9.0+ required
 - Minimal dependencies (no MDX, no unnecessary packages)
 
 **Components Implemented**
 - ✅ `Button` - Submit action
 - ✅ `Container` - Layout wrapper
-- ✅ `FadeIn` / `FadeInStagger` - Scroll animations
+- ✅ `FadeIn` / `FadeInStagger` - Scroll animations (with `animate` prop support)
 - ✅ `Border` - Accent decorations
 - ✅ `TextInput` - Floating label form inputs
 - ✅ `ProviderCard` - Result display with fastest highlighting
+- ✅ `Header` - Navigation with auth state and Sign In/Out buttons
 
-**Pages**
-- ✅ `app/layout.jsx` - Root layout with WhichMap branding
+**Pages & Routes**
+- ✅ `app/layout.jsx` - Root layout with Header component
 - ✅ `app/page.jsx` - Main comparison page with:
   - Form (start/end inputs)
   - Loading state with spinner
   - Results grid (3 provider cards)
   - Error handling
   - Deep link generation
+  - Smooth scroll to results
+- ✅ `app/login/page.jsx` - Authentication page with:
+  - Email/password sign in and sign up
+  - Google OAuth sign in
+  - Form validation and error handling
+  - Auto-redirect when logged in
+- ✅ `app/api/compare/route.js` - API endpoint for route comparison
+  - Accepts POST (JSON) and GET (query params)
+  - Returns mock data with simulated delay
+  - Ready for API key authentication
+
+**Authentication & Backend**
+- ✅ Firebase Authentication setup (`lib/firebase.js`)
+- ✅ Email/password authentication
+- ✅ Google OAuth with popup
+- ✅ Auth state persistence
+- ✅ Environment variable configuration (`.env.local.example`)
+- ✅ API route separation for external access
 
 **Functionality**
 - ✅ Form validation
@@ -45,6 +66,8 @@ Practical guide for building WhichMap using the v1 template components and patte
 - ✅ Deep links (Google, Apple, Waze)
 - ✅ Responsive design
 - ✅ Accessibility features (ARIA, semantic HTML)
+- ✅ Buy Me a Coffee link in footer
+- ✅ Global debug helpers (dev mode only)
 
 ### 🔄 Using Mock Data
 

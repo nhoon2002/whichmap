@@ -95,11 +95,12 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 - Proper contrast and accessibility
 
 **Tech Stack:**
-- Next.js 15 (App Router)
-- React 19
+- Next.js 16.0.1 (App Router, Turbopack)
+- React 19.2.0
 - Tailwind CSS v4
 - Framer Motion
 - Firebase Authentication v12.5.0
+- Node.js 20.9.0+ required
 - Minimal dependencies (no MDX or unnecessary packages)
 
 ### Components Structure
@@ -277,6 +278,33 @@ Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
 
 All `TODO` comments are marked in code where API integration is needed.
 
+## Next.js 16 Considerations
+
+**Important breaking changes to keep in mind:**
+
+1. **Async APIs** - When implementing server-side features:
+   - `params` and `searchParams` must be awaited: `await params`, `await searchParams`
+   - Utility functions must be awaited: `await cookies()`, `await headers()`, `await draftMode()`
+   - Currently not applicable to our client-side codebase
+
+2. **Caching APIs**:
+   - `revalidateTag()` requires `cacheLife` profile as 2nd argument
+   - New APIs: `updateTag()` and `refresh()`
+
+3. **Image Defaults**:
+   - `minimumCacheTTL` changed from 60s → 4 hours
+   - Local images with query strings require `images.localPatterns`
+
+4. **Middleware Rename**:
+   - Use `proxy.ts` instead of `middleware.ts` for future implementation
+
+5. **Node.js Requirement**:
+   - Minimum Node.js 20.9.0 (18 no longer supported)
+
+6. **Turbopack**:
+   - Now default bundler (opt out with `next build --webpack`)
+   - Already configured with `--turbopack` flag in dev script
+
 ## Key Implementation Considerations
 
 ### Geocoding
@@ -343,3 +371,4 @@ All `TODO` comments are marked in code where API integration is needed.
 ## Notes
 
 - Always update or modify existing docs/md when you make breaking changes or add new features
+- Do not add any mention of Claude or AI generated in your commit messages

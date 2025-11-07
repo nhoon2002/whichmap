@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -13,14 +13,14 @@
     "clsx": "^2.1.1",
     "firebase": "^12.5.0",
     "framer-motion": "^12.23.11",
-    "next": "^15",
-    "react": "^19",
-    "react-dom": "^19",
+    "next": "16.0.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "tailwindcss": "^4.1.12"
   },
   "devDependencies": {
     "eslint": "^9.32.0",
-    "eslint-config-next": "^15",
+    "eslint-config-next": "16.0.1",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14"
   }
