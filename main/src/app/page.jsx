@@ -98,7 +98,6 @@ export default function Home() {
     try {
       // TODO: Implement real geocoding to convert addresses to coordinates
       const fetchedResults = await fetchAllProviders(start, end)
-      logger.info(fetchedResults)
       setResults(fetchedResults)
     } catch (err) {
       setError('Failed to fetch route data. Please try again.')
