@@ -30,9 +30,280 @@ The application maintains:
 
 Results are fetched in parallel and the fastest ETA is determined after all responses are received.
 
+## Project Structure
+
+- `mvp/` - Initial vanilla HTML/JS prototype
+- `v1/` - TailwindCSS Pro Next.js template (reference only, do not modify)
+- `main/` - Current Next.js production application
+
 ## Development Commands
 
-*Note: Commands will be added once the project is scaffolded with a specific framework/build tool*
+Navigate to the `main/` directory for all development work:
+
+```bash
+cd main
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
+```
+
+The development server runs at `http://localhost:3000`
+
+## Current Implementation Status
+
+### Phase 1 - Core UI ✅ COMPLETE
+
+The main application (`main/src/app/page.jsx`) is fully functional with:
+
+**UI Components Built:**
+- ✅ Floating label form inputs (TextInput component)
+- ✅ Provider result cards with fastest highlighting (ProviderCard component)
+- ✅ Loading spinner with message
+- ✅ Error alerts
+- ✅ Smooth scroll to results after comparison
+- ✅ Responsive 3-column grid (mobile: 1 col, tablet: 2 col, desktop: 3 col)
+- ✅ Header with authentication state
+- ✅ Login page with email/password and Google OAuth
+
+**Features Working:**
+- ✅ Form validation (requires both start and end)
+- ✅ Mock data with 1.5s simulated API delay
+- ✅ Fastest route detection (compares ETAs)
+- ✅ Green highlighting for fastest provider
+- ✅ Deep links to all 3 providers (Google Maps, Apple Maps, Waze)
+- ✅ Framer Motion animations (FadeIn/FadeInStagger)
+- ✅ Smooth scroll animation after results load
+- ✅ Buy Me a Coffee link in footer (https://buymeacoffee.com/whichmap)
+- ✅ Firebase Authentication (email/password + Google OAuth)
+- ✅ API route separation for external access (`/api/compare`)
+
+**Theme & Design:**
+- Using **light mode** theme (bg-neutral-50 background)
+- Clean, professional aesthetic matching v1 template style
+- Proper contrast and accessibility
+
+**Tech Stack:**
+- Next.js 16.0.1 (App Router, Turbopack)
+- React 19.2.0
+- Tailwind CSS v4
+- Framer Motion
+- Firebase Authentication v12.5.0
+- Node.js 20.9.0+ required
+- Minimal dependencies (no MDX or unnecessary packages)
+
+### Components Structure
+
+```
+main/
+├── .env.local.example       # Firebase config template
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── compare/
+│   │   │       └── route.js # API endpoint for route comparison
+│   │   ├── login/
+│   │   │   └── page.jsx     # Authentication page (email/password + Google OAuth)
+│   │   ├── layout.jsx       # Root layout with Header component
+│   │   └── page.jsx         # Main comparison page (client component)
+│   ├── components/
+│   │   ├── Border.jsx       # Decorative accent lines (from v1)
+│   │   ├── Button.jsx       # Primary action button (from v1)
+│   │   ├── Container.jsx    # Max-width wrapper (from v1)
+│   │   ├── FadeIn.jsx       # Animation components (from v1, fixed)
+│   │   ├── Header.jsx       # Navigation with auth state and Sign In/Out
+│   │   ├── ProviderCard.jsx # Custom result card component
+│   │   └── TextInput.jsx    # Custom floating label input
+│   ├── lib/
+│   │   ├── firebase.js      # Firebase initialization and auth
+│   │   └── helpers.js       # Global debug utilities
+│   ├── types/
+│   │   └── global.d.ts      # TypeScript declarations for window helpers
+│   └── styles/
+│       ├── tailwind.css     # Tailwind v4 theme config
+│       └── base.css         # Mona Sans font
+```
+
+### Global Helpers System
+
+A debug utility system is available globally in development mode:
+
+**Location:** `main/src/lib/helpers.js`
+**Initialized:** Automatically in `page.jsx` on mount
+
+**Available globally (no imports needed):**
+```javascript
+log(something, color)           // Colored console logs
+logger.info(msg)                // Blue
+logger.success(msg)             // Green
+logger.warning(msg)             // Orange
+logger.error(msg)               // Red
+logger.debug(msg)               // Purple
+logTime(something, color)       // With timestamp
+devLog(something, color)        // Dev mode only
+logObject(obj, color)           // Pretty print objects
+logTrace(fn, action, data)      // Function tracing
+```
+
+Colors optimized for dark mode consoles.
+
+### Animation Implementation Notes
+
+**FadeIn Component:**
+- Always starts with `initial="hidden"`
+- Inside `FadeInStagger`: Animates immediately on mount (`animate="visible"`)
+- Outside stagger groups: Uses `whileInView` for scroll-triggered animations
+- Duration: 500ms with 24px upward motion
+
+**FadeInStagger Component:**
+- `animate={true}` (default): Animates immediately when mounted
+- `animate={false}`: Uses scroll-triggered animation
+- Stagger delay: 200ms (or 120ms with `faster` prop)
+- Used for results grid to create sequential reveal effect
+
+**Smooth Scroll:**
+- Triggered 600ms after results load
+- Waits for fade animation to complete before scrolling
+- Uses `scrollIntoView({ behavior: 'smooth', block: 'start' })`
+
+### Firebase Authentication System
+
+**Setup & Configuration:**
+- Firebase SDK v12.5.0
+- Configuration via environment variables (`.env.local`)
+- Template provided in `.env.local.example`
+- Project ID: `whichmap-eb2aa`
+
+**Authentication Methods:**
+- ✅ Email/Password sign in and sign up
+- ✅ Google OAuth with popup flow
+- Auto-redirect after successful authentication
+- Persistent auth state across sessions
+
+**Components:**
+- `Header.jsx` - Shows auth state, Sign In/Out buttons, user email
+- `login/page.jsx` - Full authentication UI with toggle between sign in/sign up
+- `lib/firebase.js` - Firebase initialization and auth instance
+
+**Environment Variables Required:**
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+```
+
+**Setup Instructions:**
+See `docs/firebase-setup.md` for complete setup guide including:
+- Firebase Console configuration
+- Enabling authentication methods
+- Usage examples and code patterns
+- Protected route implementation (optional)
+- Troubleshooting guide
+
+### API Route Architecture
+
+**Endpoint:** `POST /api/compare`
+
+The route comparison logic has been separated into a dedicated API route for:
+- External API access (React Native apps, third-party integrations)
+- Future monetization with API key authentication
+- Clean separation of concerns
+
+**Current Implementation:**
+- Accepts POST requests with `{ start, end }` in JSON body
+- Also supports GET requests with query parameters
+- Returns mock data with simulated 1.5s delay
+- Ready for API key validation (TODO comments in place)
+
+**Usage:**
+```javascript
+const response = await fetch('/api/compare', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ start, end })
+})
+const { results } = await response.json()
+```
+
+See `docs/api-usage.md` for complete API documentation including React Native examples.
+
+### Mock Data Currently in Use
+
+```javascript
+// main/src/app/page.jsx
+MOCK_DATA = {
+  google: { provider: 'Google Maps', eta: 25, distance: '15.2 mi' },
+  apple: { provider: 'Apple Maps', eta: 23, distance: '15.1 mi' },  // Fastest
+  waze: { provider: 'Waze', eta: 27, distance: '15.3 mi' }
+}
+```
+
+Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
+
+### Phase 2 - Infrastructure ✅ COMPLETE
+
+**Completed:**
+- ✅ API route separation (`/api/compare`)
+- ✅ Firebase Authentication system
+- ✅ Header navigation with auth state
+- ✅ Login page with email/password + Google OAuth
+- ✅ Environment variable configuration
+- ✅ Documentation for Firebase setup and API usage
+
+### Ready for Phase 3
+
+**Next steps to implement:**
+- [ ] Real geocoding (address → coordinates)
+- [ ] Google Maps Directions API integration
+- [ ] Waze API integration (if available)
+- [ ] Error handling for API failures
+- [ ] Caching layer for geocoding and routes
+- [ ] API key authentication for `/api/compare` endpoint
+- [ ] Rate limiting per user/session
+- [ ] User-specific data (saved routes, favorites - requires Firestore)
+
+All `TODO` comments are marked in code where API integration is needed.
+
+## Next.js 16 Considerations
+
+**Important breaking changes to keep in mind:**
+
+1. **Async APIs** - When implementing server-side features:
+   - `params` and `searchParams` must be awaited: `await params`, `await searchParams`
+   - Utility functions must be awaited: `await cookies()`, `await headers()`, `await draftMode()`
+   - Currently not applicable to our client-side codebase
+
+2. **Caching APIs**:
+   - `revalidateTag()` requires `cacheLife` profile as 2nd argument
+   - New APIs: `updateTag()` and `refresh()`
+
+3. **Image Defaults**:
+   - `minimumCacheTTL` changed from 60s → 4 hours
+   - Local images with query strings require `images.localPatterns`
+
+4. **Middleware Rename**:
+   - Use `proxy.ts` instead of `middleware.ts` for future implementation
+
+5. **Node.js Requirement**:
+   - Minimum Node.js 20.9.0 (18 no longer supported)
+
+6. **Turbopack**:
+   - Now default bundler (opt out with `next build --webpack`)
+   - Already configured with `--turbopack` flag in dev script
 
 ## Key Implementation Considerations
 
@@ -57,18 +328,47 @@ Results are fetched in parallel and the fastest ETA is determined after all resp
 ### Deep Link Format
 - Google Maps: `https://www.google.com/maps/dir/?api=1&origin={start}&destination={end}`
 - Apple Maps: `https://maps.apple.com/?saddr={start}&daddr={end}`
-- Waze: `https://waze.com/ul?ll={lat},{lng}&navigate=yes`
+- Waze: `https://www.waze.com/live-map/directions?from={start}&to={end}` (will use coordinates when available)
 
 ## Development Phases
 
-1. **Phase 1 - Core UI**: Form inputs, static cards, loading states, deep links
-2. **Phase 2 - Integrations**: Geocoding, API fetchers, error handling
-3. **Phase 3 - Logic**: Result comparison, fastest route highlighting
-4. **Phase 4 - Deployment**: Public hosting, real-world testing
+1. **Phase 1 - Core UI** ✅: Form inputs, result cards, loading states, animations, deep links
+2. **Phase 2 - Infrastructure** ✅: Authentication, API routes, environment config, documentation
+3. **Phase 3 - Integrations**: Geocoding, API fetchers (Google/Waze), error handling, caching
+4. **Phase 4 - User Features**: Saved routes, favorites, history (Firestore integration)
+5. **Phase 5 - Deployment**: Public hosting, real-world testing, monitoring
 
 ## API Keys and Security
 
-- Secure API keys should never be committed to the repository
-- Google Maps API key is required for Directions API
-- In production, consider server-side API proxy to protect keys
-- Implement rate limiting per user/session to prevent abuse
+**Environment Variables:**
+- All sensitive keys are stored in `.env.local` (gitignored)
+- `.env.local.example` provides a template (safe to commit)
+- Firebase config uses `NEXT_PUBLIC_` prefix (client-safe)
+- Google Maps API key will be server-side only (protect in API routes)
+
+**Security Considerations:**
+- ✅ Firebase credentials in environment variables
+- ✅ `.env.local` excluded from git
+- [ ] API key authentication for `/api/compare` endpoint
+- [ ] Rate limiting per user/session to prevent abuse
+- [ ] Server-side API proxy for Google Maps (protect API keys)
+- [ ] Input validation and sanitization
+
+**Firebase Security:**
+- Authentication state managed client-side
+- Firebase handles token refresh automatically
+- Auth state persists across browser sessions
+- Optional: Implement protected routes (see `docs/firebase-setup.md`)
+
+## Documentation
+
+- `CLAUDE.md` - This file, project overview and status
+- `docs/firebase-setup.md` - Complete Firebase authentication guide
+- `docs/api-usage.md` - API endpoint documentation with examples
+- `docs/v1-*.md` - TailwindCSS v1 template analysis
+- `docs/whichmap-implementation-guide.md` - Implementation roadmap
+
+## Notes
+
+- Always update or modify existing docs/md when you make breaking changes or add new features
+- Do not add any mention of Claude or AI generated in your commit messages
