@@ -8,6 +8,7 @@ import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { useRouteComparison } from '@/hooks/useRouteComparison'
 
 // Generate deep links for each provider
 function generateDeepLink(provider, start, end) {
@@ -34,35 +35,21 @@ function findFastestRoute(results) {
   })
 }
 
-// Fetch route comparison from API
-async function fetchAllProviders(start, end) {
-  const response = await fetch('/api/compare', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // TODO: Add API key header for monetization
-      // 'x-api-key': process.env.NEXT_PUBLIC_API_KEY
-    },
-    body: JSON.stringify({ start, end })
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to fetch route data')
-  }
-
-  const data = await response.json()
-  return data.results
-}
-
 export default function Home() {
   const [startLocation, setStartLocation] = useState('1932 Selby Ave, Los Angeles, CA 90025')
   const [endLocation, setEndLocation] = useState('111 N Broadway, Los Angeles, CA 90012')
-  const [results, setResults] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [searchStart, setSearchStart] = useState('')
+  const [searchEnd, setSearchEnd] = useState('')
   const resultsRef = useRef(null)
   const { preferences } = useUserPreferences()
+
+  // Use the route comparison hook
+  // Auto-fetch when searchStart and searchEnd are set (after form submit)
+  const {
+    data: results,
+    isLoading,
+    error: queryError,
+  } = useRouteComparison(searchStart, searchEnd, preferences)
 
   // Initialize global helpers on mount
   useEffect(() => {
@@ -71,7 +58,7 @@ export default function Home() {
 
   // Smooth scroll to results when they appear
   useEffect(() => {
-    if (results.length > 0 && resultsRef.current) {
+    if (results && results.length > 0 && resultsRef.current) {
       // Wait for fade animation to complete (500ms) before scrolling
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({
@@ -89,30 +76,33 @@ export default function Home() {
     const end = endLocation.trim()
 
     if (!start || !end) {
-      setError('Please enter both starting location and destination')
       return
     }
 
-    setError(null)
-    setIsLoading(true)
-    setResults([])
-
-    try {
-      // TODO: Implement real geocoding to convert addresses to coordinates
-      const fetchedResults = await fetchAllProviders(start, end)
-      setResults(fetchedResults)
-    } catch (err) {
-      setError('Failed to fetch route data. Please try again.')
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
+    // Update search parameters to trigger the query
+    // The hook will auto-fetch when these change
+    setSearchStart(start)
+    setSearchEnd(end)
   }
 
-  // Filter results based on user preferences
-  const filteredResults = results.filter((result) => {
-    return preferences.navServices[result.id] !== false
-  })
+  // Filter and deduplicate results based on user preferences
+  // Google returns multiple route alternatives - we only show the first (fastest) one
+  const filteredResults = results ? (() => {
+    // First, filter by user preferences
+    const preferenceFiltered = results.filter((result) => {
+      return preferences.navServices[result.id] !== false
+    })
+
+    // Then, group by provider and take only the first route from each
+    const seenProviders = new Set()
+    return preferenceFiltered.filter((result) => {
+      if (seenProviders.has(result.id)) {
+        return false // Skip duplicate providers
+      }
+      seenProviders.add(result.id)
+      return true
+    })
+  })() : []
 
   const fastest = filteredResults.length > 0 ? findFastestRoute(filteredResults) : null
 
@@ -147,9 +137,9 @@ export default function Home() {
               />
             </div>
 
-            {error && (
+            {queryError && (
               <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-                {error}
+                {queryError.message || 'Failed to fetch route data. Please try again.'}
               </div>
             )}
 
@@ -190,7 +180,7 @@ export default function Home() {
                     distance={result.distance}
                     unit={result.unit}
                     isFastest={fastest && result.id === fastest.id}
-                    deepLink={generateDeepLink(result.id, startLocation, endLocation)}
+                    deepLink={result.webLink || result.deepLink || generateDeepLink(result.id, searchStart, searchEnd)}
                   />
                 ))}
               </dl>
@@ -199,7 +189,7 @@ export default function Home() {
         )}
 
         {/* Show message when all services are disabled */}
-        {!isLoading && results.length > 0 && filteredResults.length === 0 && (
+        {!isLoading && results && results.length > 0 && filteredResults.length === 0 && (
           <div className="mt-24 sm:mt-32">
             <FadeIn animate>
               <div className="rounded-lg bg-neutral-50 px-6 py-8 text-center">

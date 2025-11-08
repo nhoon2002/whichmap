@@ -1,42 +1,24 @@
 import { NextResponse } from 'next/server'
-
-// TODO: Replace with real API data from Google Maps, Apple Maps, and Waze
-const MOCK_DATA = {
-  google: {
-    provider: 'Google Maps',
-    eta: 25,
-    distance: '15.2 mi',
-    unit: 'min'
-  },
-  apple: {
-    provider: 'Apple Maps',
-    eta: 23,
-    distance: '15.1 mi',
-    unit: 'min'
-  },
-  waze: {
-    provider: 'Waze',
-    eta: 27,
-    distance: '15.3 mi',
-    unit: 'min'
-  }
-}
+import { compareRoutes } from '@/services/routeService'
 
 /**
  * POST /api/compare
  * Compare routes across map providers
  *
- * Body: { start: string, end: string }
- * Returns: Array of provider results with ETAs
+ * Body: {
+ *   start: string,
+ *   end: string,
+ *   preferences: { navServices: { google, apple, waze } } (optional)
+ * }
+ * Returns: Array of routes from enabled providers
  *
  * TODO: Add authentication/API key validation for monetization
  * TODO: Add rate limiting
- * TODO: Implement real geocoding and provider APIs
  */
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { start, end } = body
+    const { start, end, preferences } = body
 
     // Validation
     if (!start || !end) {
@@ -58,39 +40,30 @@ export async function POST(request) {
     //   return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     // }
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // TODO: If user is authenticated, load their preferences from Firestore
+    // For now, use preferences from request body or defaults
 
-    // TODO: Implement real geocoding
-    // const startCoords = await geocode(start)
-    // const endCoords = await geocode(end)
+    // Fetch routes from all enabled providers
+    const routes = await compareRoutes(start, end, preferences)
 
-    // TODO: Fetch from real provider APIs in parallel
-    // const [googleResult, appleResult, wazeResult] = await Promise.all([
-    //   fetchGoogleDirections(startCoords, endCoords),
-    //   fetchAppleDirections(startCoords, endCoords),
-    //   fetchWazeDirections(startCoords, endCoords)
-    // ])
-
-    // Return mock data for now
-    const results = [
-      { ...MOCK_DATA.google, id: 'google' },
-      { ...MOCK_DATA.apple, id: 'apple' },
-      { ...MOCK_DATA.waze, id: 'waze' }
-    ]
+    // Transform routes for frontend compatibility
+    const results = transformRoutesForFrontend(routes)
 
     return NextResponse.json({
       success: true,
       start,
       end,
       results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
 
   } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        message: error.message
+      },
       { status: 500 }
     )
   }
@@ -118,4 +91,56 @@ export async function GET(request) {
     headers: request.headers,
     body: JSON.stringify({ start, end })
   }))
+}
+
+/**
+ * Transform routes from service layer to frontend format
+ * Maintains backward compatibility with existing frontend code
+ * @private
+ */
+function transformRoutesForFrontend(routes) {
+  return routes.map(route => {
+    // For providers with full route data (like Google)
+    if (route.duration && route.distance) {
+      return {
+        id: route.provider,
+        provider: formatProviderName(route.provider),
+        eta: Math.round(route.durationInTraffic / 60) || Math.round(route.duration / 60),
+        distance: route.distanceText,
+        unit: 'min',
+
+        // Additional data for detailed view
+        summary: route.summary,
+        durationText: route.durationInTrafficText || route.durationText,
+        startAddress: route.startAddress,
+        endAddress: route.endAddress,
+        warnings: route.warnings,
+        steps: route.steps,
+        deepLink: route.deepLink,
+        webLink: route.webLink,
+      }
+    }
+
+    // For providers with only deep links (Apple, Waze - not implemented yet)
+    return {
+      id: route.provider,
+      provider: formatProviderName(route.provider),
+      message: route.message,
+      deepLink: route.deepLink,
+      webLink: route.webLink,
+    }
+  })
+}
+
+/**
+ * Format provider name for display
+ * @private
+ */
+function formatProviderName(provider) {
+  const names = {
+    google: 'Google Maps',
+    apple: 'Apple Maps',
+    waze: 'Waze',
+  }
+  return names[provider] || provider
 }

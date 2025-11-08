@@ -4,10 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 
 /**
  * Fetch route comparison from API
- * This will eventually call Google Maps, Waze, etc.
- * For now, it calls our mock API endpoint
+ * Calls Google Maps and other providers based on user preferences
  */
-async function fetchRouteComparison(start, end) {
+async function fetchRouteComparison(start, end, preferences) {
   const response = await fetch('/api/compare', {
     method: 'POST',
     headers: {
@@ -15,7 +14,7 @@ async function fetchRouteComparison(start, end) {
       // TODO: Add API key header for monetization
       // 'x-api-key': process.env.NEXT_PUBLIC_API_KEY
     },
-    body: JSON.stringify({ start, end }),
+    body: JSON.stringify({ start, end, preferences }),
   })
 
   if (!response.ok) {
@@ -33,17 +32,19 @@ async function fetchRouteComparison(start, end) {
  *
  * @param {string} start - Starting location
  * @param {string} end - Destination location
+ * @param {object} preferences - User preferences (navServices: { google, apple, waze })
  * @param {object} options - React Query options
  * @returns {object} { data, isLoading, error, refetch }
  */
-export function useRouteComparison(start, end, options = {}) {
+export function useRouteComparison(start, end, preferences = null, options = {}) {
   return useQuery({
     // Query key - unique identifier for this query
     // React Query will cache based on this
-    queryKey: ['routes', start, end],
+    // Include preferences in key so cache updates when preferences change
+    queryKey: ['routes', start, end, preferences],
 
     // Query function - how to fetch the data
-    queryFn: () => fetchRouteComparison(start, end),
+    queryFn: () => fetchRouteComparison(start, end, preferences),
 
     // Only fetch if we have both start and end
     enabled: Boolean(start && end),
@@ -64,9 +65,11 @@ export function useRouteComparison(start, end, options = {}) {
  * Example usage in a component:
  *
  * function MyComponent() {
+ *   const { preferences } = useUserPreferences()
  *   const { data: routes, isLoading, error, refetch } = useRouteComparison(
  *     '1932 Selby Ave, Los Angeles, CA',
- *     '111 N Broadway, Los Angeles, CA'
+ *     '111 N Broadway, Los Angeles, CA',
+ *     preferences
  *   )
  *
  *   if (isLoading) return <div>Loading...</div>

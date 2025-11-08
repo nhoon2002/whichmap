@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@googlemaps/routing": "^2.1.1",
     "@tailwindcss/postcss": "^4.1.12",
     "@tanstack/react-query": "^5.90.7",
     "clsx": "^2.1.1",
