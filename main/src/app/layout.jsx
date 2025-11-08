@@ -1,5 +1,6 @@
 import '@/styles/tailwind.css'
 import { Header } from '@/components/Header'
+import { QueryProvider } from '@/providers/QueryProvider'
 
 export const metadata = {
   title: {
@@ -13,8 +14,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="h-full bg-neutral-50 text-base antialiased">
       <body className="flex min-h-full flex-col">
-        <Header />
-        {children}
+        <QueryProvider>
+          <Header />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   )

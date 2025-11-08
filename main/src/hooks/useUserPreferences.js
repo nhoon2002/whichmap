@@ -1,94 +1,78 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth, db } from '@/lib/firebase'
-
-// Default preferences for new users
-const DEFAULT_PREFERENCES = {
-  navServices: {
-    google: true,
-    apple: true,
-    waze: true,
-  },
-}
+import { auth } from '@/lib/firebase'
+import { User } from '@/models/User'
 
 /**
  * Custom hook to manage user preferences in Firestore
- * @returns {Object} { preferences, updatePreferences, loading }
+ * Uses the User model for data operations
+ * @returns {Object} { preferences, updatePreferences, toggleNavService, loading, isLoggedIn }
  */
 export function useUserPreferences() {
-  const [user, setUser] = useState(null)
-  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [userModel, setUserModel] = useState(null)
+  const [preferences, setPreferences] = useState(User.defaultPreferences)
   const [loading, setLoading] = useState(true)
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setCurrentUser(firebaseUser)
     })
     return () => unsubscribe()
   }, [])
 
   // Load user preferences from Firestore when user signs in
   useEffect(() => {
-    async function loadPreferences() {
-      if (!user) {
+    async function loadUserModel() {
+      if (!currentUser) {
         // User not logged in, use defaults
-        setPreferences(DEFAULT_PREFERENCES)
+        setUserModel(null)
+        setPreferences(User.defaultPreferences)
         setLoading(false)
         return
       }
 
       try {
-        const userDocRef = doc(db, 'users', user.uid)
-        const userDoc = await getDoc(userDocRef)
+        // Find or create user in Firestore
+        const user = await User.findOrCreate(currentUser.uid, {
+          email: currentUser.email,
+        })
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          setPreferences(userData.preferences || DEFAULT_PREFERENCES)
-        } else {
-          // First time user, create document with defaults
-          await setDoc(userDocRef, {
-            email: user.email,
-            preferences: DEFAULT_PREFERENCES,
-            createdAt: new Date(),
-          })
-          setPreferences(DEFAULT_PREFERENCES)
-        }
+        setUserModel(user)
+        setPreferences(user.preferences)
       } catch (error) {
-        console.error('Error loading preferences:', error)
-        setPreferences(DEFAULT_PREFERENCES)
+        console.error('Error loading user:', error)
+        setPreferences(User.defaultPreferences)
       } finally {
         setLoading(false)
       }
     }
 
-    loadPreferences()
-  }, [user])
+    loadUserModel()
+  }, [currentUser])
 
   /**
    * Update user preferences in Firestore
    * @param {Object} newPreferences - Updated preferences object
    */
   const updatePreferences = async (newPreferences) => {
-    if (!user) {
-      // User not logged in, update local state only
-      setPreferences(newPreferences)
+    // Update local state immediately for responsive UI
+    setPreferences(newPreferences)
+
+    if (!userModel) {
+      // User not logged in, local state only
       return
     }
 
     try {
-      const userDocRef = doc(db, 'users', user.uid)
-      await setDoc(
-        userDocRef,
-        { preferences: newPreferences },
-        { merge: true }
-      )
-      setPreferences(newPreferences)
+      await userModel.updatePreferences(newPreferences)
     } catch (error) {
       console.error('Error updating preferences:', error)
+      // Revert local state on error
+      setPreferences(userModel.preferences)
       throw error
     }
   }
@@ -105,6 +89,7 @@ export function useUserPreferences() {
         [service]: !preferences.navServices[service],
       },
     }
+
     await updatePreferences(newPreferences)
   }
 
@@ -113,6 +98,6 @@ export function useUserPreferences() {
     updatePreferences,
     toggleNavService,
     loading,
-    isLoggedIn: !!user,
+    isLoggedIn: !!currentUser,
   }
 }
