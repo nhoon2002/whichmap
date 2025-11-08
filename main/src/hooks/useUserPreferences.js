@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { onAuthChange } from '@/services/authService'
 import { User } from '@/models/User'
 
 /**
@@ -18,7 +17,7 @@ export function useUserPreferences() {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthChange((firebaseUser) => {
       setCurrentUser(firebaseUser)
     })
     return () => unsubscribe()

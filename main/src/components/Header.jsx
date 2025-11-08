@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { auth } from '@/lib/firebase'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { onAuthChange, signOut } from '@/services/authService'
 import { Container } from '@/components/Container'
 import { Button } from '@/components/Button'
 import { Settings } from '@/components/Settings'
@@ -15,7 +14,7 @@ export function Header() {
   const pathname = usePathname()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthChange((currentUser) => {
       setUser(currentUser)
       setLoading(false)
     })
@@ -25,7 +24,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth)
+      await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     }

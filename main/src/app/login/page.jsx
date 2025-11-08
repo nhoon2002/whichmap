@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { auth } from '@/lib/firebase'
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup
-} from 'firebase/auth'
+  signInWithEmail,
+  signUpWithEmail,
+  signInWithGoogle,
+  onAuthChange,
+} from '@/services/authService'
 import { Container } from '@/components/Container'
 import { FadeIn } from '@/components/FadeIn'
 import { TextInput } from '@/components/TextInput'
@@ -25,7 +23,7 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthChange((user) => {
       if (user) {
         router.push('/')
       }
@@ -40,9 +38,9 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password)
+        await signUpWithEmail(email, password)
       } else {
-        await signInWithEmailAndPassword(auth, email, password)
+        await signInWithEmail(email, password)
       }
       router.push('/')
     } catch (err) {
@@ -58,8 +56,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      await signInWithGoogle()
       router.push('/')
     } catch (err) {
       console.error('Google sign in error:', err)
