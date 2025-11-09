@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 
 /**
  * Fetch route comparison from API
- * Calls Google Maps and other providers based on user preferences
+ * Always fetches ALL providers - preferences are applied client-side only
  */
-async function fetchRouteComparison(start, end, preferences) {
+async function fetchRouteComparison(start, end) {
   const response = await fetch('/api/compare', {
     method: 'POST',
     headers: {
@@ -14,7 +14,9 @@ async function fetchRouteComparison(start, end, preferences) {
       // TODO: Add API key header for monetization
       // 'x-api-key': process.env.NEXT_PUBLIC_API_KEY
     },
-    body: JSON.stringify({ start, end, preferences }),
+    // Don't send preferences - always fetch all providers
+    // Preferences are applied client-side via filterRoutes()
+    body: JSON.stringify({ start, end }),
   })
 
   if (!response.ok) {
@@ -32,7 +34,7 @@ async function fetchRouteComparison(start, end, preferences) {
  *
  * @param {string} start - Starting location
  * @param {string} end - Destination location
- * @param {object} preferences - User preferences (navServices: { google, apple, waze })
+ * @param {object} preferences - DEPRECATED - preferences now only filter client-side
  * @param {object} options - React Query options
  * @returns {object} { data, isLoading, error, refetch }
  */
@@ -40,14 +42,18 @@ export function useRouteComparison(start, end, preferences = null, options = {})
   return useQuery({
     // Query key - unique identifier for this query
     // React Query will cache based on this
-    // Include preferences in key so cache updates when preferences change
-    queryKey: ['routes', start, end, preferences],
+    // NOTE: Preferences are NOT included in query key
+    // This prevents refetching when preferences change
+    // Preferences only filter results client-side
+    queryKey: ['routes', start, end],
 
     // Query function - how to fetch the data
     // IMPORTANT: Get values from queryKey to avoid stale closure
+    // Always fetch ALL providers - preferences filter client-side only
     queryFn: ({ queryKey }) => {
-      const [, queryStart, queryEnd, queryPreferences] = queryKey
-      return fetchRouteComparison(queryStart, queryEnd, queryPreferences)
+      const [, queryStart, queryEnd] = queryKey
+      // Don't send preferences - always fetch all providers
+      return fetchRouteComparison(queryStart, queryEnd)
     },
 
     // Only fetch if we have both start and end

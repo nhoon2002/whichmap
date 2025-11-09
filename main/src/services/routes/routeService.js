@@ -61,32 +61,24 @@ async function normalizeLocation(location) {
  * Compare routes across multiple providers
  * @param {string|object} origin - Starting location (address string or {lat, lng} object)
  * @param {string|object} destination - Ending location (address string or {lat, lng} object)
- * @param {object} preferences - User preferences { navServices: { google, apple, waze } }
+ * @param {object} preferences - DEPRECATED - User preferences are now applied client-side only
  * @returns {Promise<Array>} Array of route comparisons
  */
 export async function compareRoutes(origin, destination, preferences = {}) {
-  const navServices = preferences?.navServices || {}
-
   // Geocode addresses to coordinates if needed
   // This is required for Apple Maps ETA API which only accepts coordinates
   const originCoords = await normalizeLocation(origin)
   const destinationCoords = await normalizeLocation(destination)
 
   // Build array of provider requests using generic fetch function
-  // Filter by TWO conditions:
-  // 1. Provider has API implementation (hasAPI === true)
-  // 2. User has enabled the service in preferences (default to false if not specified)
+  // ALWAYS fetch ALL providers that have API implementations
+  // User preferences are applied client-side to filter results
+  // This prevents unnecessary API refetches when user toggles preferences
   const requests = Object.entries(PROVIDERS)
     .filter(([providerId, providerConfig]) => {
-      // Check if provider has API implementation
-      const isImplemented = providerConfig.hasAPI === true
-
-      // Check if user has enabled this service in preferences
-      // If not specified in preferences, default to false (opt-in)
-      const isEnabledByUser = navServices[providerId] === true
-
-      // Only include if BOTH conditions are met
-      return isImplemented && isEnabledByUser
+      // Only check if provider has API implementation
+      // Do NOT check user preferences here
+      return providerConfig.hasAPI === true
     })
     .map(([providerId, providerConfig]) =>
       // Use coordinates for all providers (geocoded if needed)

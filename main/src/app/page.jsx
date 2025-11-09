@@ -44,14 +44,6 @@ export default function Home() {
     initGlobalHelpers()
   }, [])
 
-  // When preferences change, invalidate the query to force refetch
-  // Only if user has already submitted a comparison
-  useEffect(() => {
-    if (submittedStart && submittedEnd) {
-      queryClient.invalidateQueries({ queryKey: ['routes'] })
-    }
-  }, [preferences, submittedStart, submittedEnd, queryClient])
-
   // Smooth scroll to results when they appear
   useEffect(() => {
     if (results && results.length > 0 && resultsRef.current) {
