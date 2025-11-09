@@ -1,60 +1,50 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Container } from '@/components/Container'
 import { FadeIn, FadeInStagger } from '@/components/FadeIn'
 import { TextInput } from '@/components/TextInput'
 import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
-import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { filterRoutes, findFastestRoute, generateDeepLink } from '@/lib/routeHelpers'
+import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
-
-// Generate deep links for each provider
-function generateDeepLink(provider, start, end) {
-  const encodedStart = encodeURIComponent(start)
-  const encodedEnd = encodeURIComponent(end)
-
-  switch (provider) {
-    case 'google':
-      return `https://www.google.com/maps/dir/?api=1&origin=${encodedStart}&destination=${encodedEnd}`
-    case 'apple':
-      return `https://maps.apple.com/?saddr=${encodedStart}&daddr=${encodedEnd}`
-    case 'waze':
-      // TODO: Use coordinate format (ll.{lat},{lon}) when geocoding is implemented
-      return `https://www.waze.com/live-map/directions?from=${encodedStart}&to=${encodedEnd}`
-    default:
-      return '#'
-  }
-}
-
-// Find the fastest route
-function findFastestRoute(results) {
-  return results.reduce((fastest, current) => {
-    return current.eta < fastest.eta ? current : fastest
-  })
-}
 
 export default function Home() {
   const [startLocation, setStartLocation] = useState('1932 Selby Ave, Los Angeles, CA 90025')
   const [endLocation, setEndLocation] = useState('111 N Broadway, Los Angeles, CA 90012')
-  const [searchStart, setSearchStart] = useState('')
-  const [searchEnd, setSearchEnd] = useState('')
   const resultsRef = useRef(null)
   const { preferences } = useUserPreferences()
+  const queryClient = useQueryClient()
+
+  // Track if user has submitted the form
+  const [hasSubmitted, setHasSubmitted] = useState(false)
+
 
   // Use the route comparison hook
-  // Auto-fetch when searchStart and searchEnd are set (after form submit)
+  // Only enable after user submits the form
   const {
     data: results,
     isLoading,
     error: queryError,
-  } = useRouteComparison(searchStart, searchEnd, preferences)
+    refetch,
+  } = useRouteComparison(startLocation, endLocation, preferences, {
+    enabled: hasSubmitted && Boolean(startLocation && endLocation),
+  })
 
   // Initialize global helpers on mount
   useEffect(() => {
     initGlobalHelpers()
   }, [])
+
+  // When preferences change, invalidate the query to force refetch
+  useEffect(() => {
+    if (hasSubmitted) {
+      queryClient.invalidateQueries({ queryKey: ['routes'] })
+    }
+  }, [preferences, hasSubmitted, queryClient])
 
   // Smooth scroll to results when they appear
   useEffect(() => {
@@ -79,32 +69,13 @@ export default function Home() {
       return
     }
 
-    // Update search parameters to trigger the query
-    // The hook will auto-fetch when these change
-    setSearchStart(start)
-    setSearchEnd(end)
+    // Enable the query (will auto-fetch with current preferences)
+    setHasSubmitted(true)
   }
 
   // Filter and deduplicate results based on user preferences
-  // Google returns multiple route alternatives - we only show the first (fastest) one
-  const filteredResults = results ? (() => {
-    // First, filter by user preferences
-    const preferenceFiltered = results.filter((result) => {
-      return preferences.navServices[result.id] !== false
-    })
-
-    // Then, group by provider and take only the first route from each
-    const seenProviders = new Set()
-    return preferenceFiltered.filter((result) => {
-      if (seenProviders.has(result.id)) {
-        return false // Skip duplicate providers
-      }
-      seenProviders.add(result.id)
-      return true
-    })
-  })() : []
-
-  const fastest = filteredResults.length > 0 ? findFastestRoute(filteredResults) : null
+  const filteredResults = filterRoutes(results, preferences)
+  const fastest = findFastestRoute(filteredResults)
 
   return (
     <main className="flex-auto">
@@ -180,7 +151,7 @@ export default function Home() {
                     distance={result.distance}
                     unit={result.unit}
                     isFastest={fastest && result.id === fastest.id}
-                    deepLink={result.webLink || result.deepLink || generateDeepLink(result.id, searchStart, searchEnd)}
+                    deepLink={result.webLink || result.deepLink || generateDeepLink(result.id, startLocation, endLocation)}
                   />
                 ))}
               </dl>

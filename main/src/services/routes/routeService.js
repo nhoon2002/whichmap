@@ -4,9 +4,9 @@
  * Respects user preferences for which services to use
  */
 
-import * as googleMapsService from './maps/googleMapsService'
-import * as appleMapsService from './maps/appleMapsService'
-import * as wazeService from './maps/wazeService'
+import * as googleMapsService from './providers/googleMapsService'
+import * as appleMapsService from './providers/appleMapsService'
+import * as wazeService from './providers/wazeService'
 
 /**
  * Provider registry
@@ -41,15 +41,24 @@ const PROVIDERS = {
  * @returns {Promise<Array>} Array of route comparisons
  */
 export async function compareRoutes(origin, destination, preferences = {}) {
-  const enabledServices = preferences?.navServices || {
-    google: true,
-    apple: false, // Not implemented yet
-    waze: false, // Not implemented yet
-  }
+  const navServices = preferences?.navServices || {}
 
   // Build array of provider requests using generic fetch function
+  // Filter by TWO conditions:
+  // 1. Provider has API implementation (hasAPI === true)
+  // 2. User has enabled the service in preferences (default to false if not specified)
   const requests = Object.entries(PROVIDERS)
-    .filter(([providerId]) => enabledServices[providerId])
+    .filter(([providerId, providerConfig]) => {
+      // Check if provider has API implementation
+      const isImplemented = providerConfig.hasAPI === true
+      
+      // Check if user has enabled this service in preferences
+      // If not specified in preferences, default to false (opt-in)
+      const isEnabledByUser = navServices[providerId] === true
+      
+      // Only include if BOTH conditions are met
+      return isImplemented && isEnabledByUser
+    })
     .map(([providerId, providerConfig]) =>
       fetchRouteFromProvider(providerConfig, origin, destination).catch(error => ({
         provider: providerId,

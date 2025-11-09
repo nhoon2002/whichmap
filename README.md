@@ -12,11 +12,11 @@ Compare travel times across Google Maps, Apple Maps, and Waze on a single screen
 
 ## 📁 Repository Structure
 
-The repository contains three main directories:
+The repository contains:
 
-1. **`mvp/`** - Initial vanilla HTML/JS prototype (reference only)
-2. **`v1/`** - TailwindCSS Pro Next.js template (reference only, do not modify)
-3. **`main/`** - **Current production application** (where all development happens)
+- **`main/`** - **Production application** (all development happens here)
+- **`docs/`** - Comprehensive documentation
+- **`README.md`** - This file
 
 ---
 
@@ -52,12 +52,15 @@ The repository contains three main directories:
 - ✅ Environment variable configuration
 - ✅ User preferences system (Firestore)
 
-**Phase 3 - API Integration (IN PROGRESS)**
+**Phase 3 - API Integration & Security (COMPLETE)**
 - ✅ Google Maps Routes API v2 integration (working)
 - ✅ Service layer architecture (routeService.js)
 - ✅ React Query caching
-- ⚠️ Apple Maps - deep links only (no public API)
-- ⚠️ Waze - deep links only (no public API)
+- ✅ Rate limiting (10 req/min per IP)
+- ✅ Input validation with Zod schemas
+- ✅ Error sanitization (no internal details exposed)
+- ⚠️ Apple Maps - marked as "Coming Soon" (no public API)
+- ⚠️ Waze - marked as "Coming Soon" (no public API)
 
 ---
 
@@ -66,36 +69,42 @@ The repository contains three main directories:
 ```
 main/src/
 ├── app/
-│   ├── api/compare/route.js      # API endpoint for route comparison
+│   ├── api/compare/route.js      # API endpoint (rate limited, validated)
 │   ├── login/page.jsx            # Authentication page
-│   ├── layout.jsx                # Root layout with Header
-│   └── page.jsx                  # Main comparison page
+│   ├── layout.jsx                # Root layout with ErrorBoundary
+│   └── page.jsx                  # Main comparison page (refactored)
 ├── components/
 │   ├── Border.jsx                # Decorative accent lines
 │   ├── Button.jsx                # Primary action button
 │   ├── Container.jsx             # Max-width wrapper
+│   ├── ErrorBoundary.jsx         # Error boundary component
 │   ├── FadeIn.jsx                # Animation components
 │   ├── Header.jsx                # Navigation with auth
 │   ├── ProviderCard.jsx          # Result card component
-│   ├── Settings.jsx              # User preferences dropdown
+│   ├── Settings.jsx              # User preferences (Coming Soon badges)
 │   └── TextInput.jsx             # Floating label input
 ├── hooks/
 │   ├── useRouteComparison.js     # React Query hook for routes
 │   └── useUserPreferences.js     # Firestore user preferences
 ├── lib/
 │   ├── firebase.js               # Firebase initialization
-│   └── helpers.js                # Global debug utilities
+│   ├── helpers.js                # Global debug utilities
+│   ├── ratelimit.js              # Rate limiting utility (Upstash/in-memory)
+│   ├── routeHelpers.js           # Route filtering & business logic
+│   └── validation.js             # Zod schemas for input validation
 ├── models/
 │   └── User.js                   # User data model (Firestore)
 ├── providers/
 │   └── QueryProvider.jsx         # React Query setup
 ├── services/
-│   ├── authService.js            # Auth operations
-│   ├── routeService.js           # Route orchestrator
-│   └── maps/
-│       ├── googleMapsService.js  # Google Maps API
-│       ├── appleMapsService.js   # Apple Maps (placeholder)
-│       └── wazeService.js        # Waze (placeholder)
+│   ├── auth/
+│   │   └── authService.js        # Auth operations
+│   └── routes/
+│       ├── routeService.js       # Route orchestrator
+│       └── providers/
+│           ├── googleMapsService.js  # Google Maps API
+│           ├── appleMapsService.js   # Apple Maps (placeholder)
+│           └── wazeService.js        # Waze (placeholder)
 └── styles/
     ├── tailwind.css              # Tailwind v4 theme
     └── base.css                  # Mona Sans font
@@ -249,14 +258,19 @@ npm run lint
 4. ✅ User preferences (show/hide services)
 5. ✅ React Query caching
 6. ✅ Responsive design
+7. ✅ **Rate limiting (10 req/min per IP)**
+8. ✅ **Input validation with Zod**
+9. ✅ **Error boundaries**
+10. ✅ **Refactored state management (no duplication)**
+11. ✅ **Business logic in service layer**
+12. ✅ **Organized services directory structure**
 
 ### What's Pending
 
-1. ⏳ Apple Maps integration (no public API available)
-2. ⏳ Waze integration (no public API available)
-3. ⏳ API key authentication for `/api/compare`
-4. ⏳ Rate limiting
-5. ⏳ Deployment configuration
+1. ⏳ Apple Maps integration (no public API available - marked as "Coming Soon")
+2. ⏳ Waze integration (no public API available - marked as "Coming Soon")
+3. ⏳ API key authentication for `/api/compare` (for monetization)
+4. ⏳ Deployment configuration (Vercel/production)
 
 ### Phase 4 - Destination Discovery (Future)
 

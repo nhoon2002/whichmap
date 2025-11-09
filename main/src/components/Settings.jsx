@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 
 export function Settings() {
   const [isOpen, setIsOpen] = useState(false)
@@ -26,9 +26,9 @@ export function Settings() {
   }, [isOpen])
 
   const navServices = [
-    { key: 'google', label: 'Google Maps' },
-    { key: 'apple', label: 'Apple Maps' },
-    { key: 'waze', label: 'Waze' },
+    { key: 'google', label: 'Google Maps', available: true },
+    { key: 'apple', label: 'Apple Maps', available: false, comingSoon: true },
+    { key: 'waze', label: 'Waze', available: false, comingSoon: true },
   ]
 
   return (
@@ -74,19 +74,29 @@ export function Settings() {
             )}
 
             <div className="space-y-2">
-              {navServices.map(({ key, label }) => (
+              {navServices.map(({ key, label, available, comingSoon }) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 cursor-pointer hover:bg-neutral-50 p-2 rounded transition"
+                  className={`flex items-center gap-3 p-2 rounded transition ${
+                    available 
+                      ? 'cursor-pointer hover:bg-neutral-50' 
+                      : 'cursor-not-allowed opacity-60'
+                  }`}
+                  title={!available ? 'Coming soon' : ''}
                 >
                   <input
                     type="checkbox"
-                    checked={preferences.navServices[key]}
-                    onChange={() => toggleNavService(key)}
-                    disabled={loading}
-                    className="h-4 w-4 rounded border-neutral-300 text-neutral-950 focus:ring-neutral-950 cursor-pointer"
+                    checked={available ? preferences.navServices[key] : false}
+                    onChange={() => available && toggleNavService(key)}
+                    disabled={loading || !available}
+                    className="h-4 w-4 rounded border-neutral-300 text-neutral-950 focus:ring-neutral-950 disabled:cursor-not-allowed"
                   />
-                  <span className="text-sm text-neutral-700">{label}</span>
+                  <span className="text-sm text-neutral-700 flex-1">{label}</span>
+                  {comingSoon && (
+                    <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">
+                      Coming Soon
+                    </span>
+                  )}
                 </label>
               ))}
             </div>

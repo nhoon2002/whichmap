@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { compareRoutes } from '@/services/routeService'
+import { compareRoutes } from '@/services/routes/routeService'
+import { validateRouteComparison } from '@/lib/validation'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 /**
  * POST /api/compare
@@ -12,57 +14,90 @@ import { compareRoutes } from '@/services/routeService'
  * }
  * Returns: Array of routes from enabled providers
  *
- * TODO: Add authentication/API key validation for monetization
- * TODO: Add rate limiting
+ * Security:
+ * - Rate limiting: 10 requests per minute per IP
+ * - Input validation: Zod schema validation
+ * - Error sanitization: No internal details exposed
+ *
+ * TODO: Add API key authentication for monetization
  */
 export async function POST(request) {
   try {
-    const body = await request.json()
-    const { start, end, preferences } = body
-
-    // Validation
-    if (!start || !end) {
+    // 1. Rate Limiting
+    const rateLimitResult = await checkRateLimit(request)
+    
+    if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: 'Both start and end locations are required' },
-        { status: 400 }
+        { 
+          error: 'Too many requests. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+        },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
       )
     }
 
-    // TODO: Validate API key here for monetization
+    // 2. Parse and validate input
+    const body = await request.json()
+    const validation = validateRouteComparison(body)
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { 
+          status: 400,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      )
+    }
+
+    const { start, end, preferences } = validation.data
+
+    // TODO: API key validation for monetization
     // const apiKey = request.headers.get('x-api-key')
     // if (!apiKey || !isValidApiKey(apiKey)) {
     //   return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
     // }
 
-    // TODO: Implement rate limiting
-    // const rateLimitOk = await checkRateLimit(apiKey, request.ip)
-    // if (!rateLimitOk) {
-    //   return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
-    // }
-
     // TODO: If user is authenticated, load their preferences from Firestore
     // For now, use preferences from request body or defaults
 
-    // Fetch routes from all enabled providers
+    // 3. Fetch routes from all enabled providers
     const routes = await compareRoutes(start, end, preferences)
 
-    // Transform routes for frontend compatibility
+    // 4. Transform routes for frontend compatibility
     const results = transformRoutesForFrontend(routes)
 
-    return NextResponse.json({
-      success: true,
-      start,
-      end,
-      results,
-      timestamp: new Date().toISOString(),
-    })
-
-  } catch (error) {
-    console.error('API Error:', error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        message: error.message
+        success: true,
+        start,
+        end,
+        results,
+        timestamp: new Date().toISOString(),
+      },
+      {
+        headers: getRateLimitHeaders(rateLimitResult),
+      }
+    )
+
+  } catch (error) {
+    // Log error internally but don't expose details to client
+    console.error('API Error:', error)
+    
+    // Determine if it's a known error type
+    const isGoogleApiError = error.message?.includes('Google Maps')
+    const isValidationError = error.message?.includes('Invalid')
+    
+    return NextResponse.json(
+      {
+        error: isGoogleApiError 
+          ? 'Unable to fetch route data. Please try again.'
+          : isValidationError
+          ? 'Invalid request. Please check your input.'
+          : 'An error occurred while processing your request.',
       },
       { status: 500 }
     )

@@ -7,7 +7,7 @@ import {
   signUpWithEmail,
   signInWithGoogle,
   onAuthChange,
-} from '@/services/authService'
+} from '@/services/auth/authService'
 import { Container } from '@/components/Container'
 import { FadeIn } from '@/components/FadeIn'
 import { TextInput } from '@/components/TextInput'

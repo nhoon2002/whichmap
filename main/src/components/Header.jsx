@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { onAuthChange, signOut } from '@/services/authService'
+import { onAuthChange, signOut } from '@/services/auth/authService'
 import { Container } from '@/components/Container'
 import { Button } from '@/components/Button'
 import { Settings } from '@/components/Settings'

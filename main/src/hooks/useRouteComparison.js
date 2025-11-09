@@ -44,7 +44,11 @@ export function useRouteComparison(start, end, preferences = null, options = {})
     queryKey: ['routes', start, end, preferences],
 
     // Query function - how to fetch the data
-    queryFn: () => fetchRouteComparison(start, end, preferences),
+    // IMPORTANT: Get values from queryKey to avoid stale closure
+    queryFn: ({ queryKey }) => {
+      const [, queryStart, queryEnd, queryPreferences] = queryKey
+      return fetchRouteComparison(queryStart, queryEnd, queryPreferences)
+    },
 
     // Only fetch if we have both start and end
     enabled: Boolean(start && end),

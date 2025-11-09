@@ -1,18 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { onAuthChange } from '@/services/authService'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { onAuthChange } from '@/services/auth/authService'
 import { User } from '@/models/User'
 
+const UserPreferencesContext = createContext(null)
+
 /**
- * Custom hook to manage user preferences in Firestore
- * Uses the User model for data operations
- * @returns {Object} { preferences, updatePreferences, toggleNavService, loading, isLoggedIn }
+ * Provider for user preferences
+ * Manages a single shared state across all components
  */
-export function useUserPreferences() {
+export function UserPreferencesProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [userModel, setUserModel] = useState(null)
-  const [preferences, setPreferences] = useState(User.defaultPreferences)
+  const [preferences, setPreferences] = useState(() => ({
+    navServices: {
+      google: false,
+      apple: true,
+      waze: true,
+    },
+  }))
   const [loading, setLoading] = useState(true)
 
   // Listen to auth state changes
@@ -27,15 +34,12 @@ export function useUserPreferences() {
   useEffect(() => {
     async function loadUserModel() {
       if (!currentUser) {
-        // User not logged in, use defaults
         setUserModel(null)
-        setPreferences(User.defaultPreferences)
         setLoading(false)
         return
       }
 
       try {
-        // Find or create user in Firestore
         const user = await User.findOrCreate(currentUser.uid, {
           email: currentUser.email,
         })
@@ -44,7 +48,6 @@ export function useUserPreferences() {
         setPreferences(user.preferences)
       } catch (error) {
         console.error('Error loading user:', error)
-        setPreferences(User.defaultPreferences)
       } finally {
         setLoading(false)
       }
@@ -53,16 +56,10 @@ export function useUserPreferences() {
     loadUserModel()
   }, [currentUser])
 
-  /**
-   * Update user preferences in Firestore
-   * @param {Object} newPreferences - Updated preferences object
-   */
   const updatePreferences = async (newPreferences) => {
-    // Update local state immediately for responsive UI
     setPreferences(newPreferences)
 
     if (!userModel) {
-      // User not logged in, local state only
       return
     }
 
@@ -70,16 +67,11 @@ export function useUserPreferences() {
       await userModel.updatePreferences(newPreferences)
     } catch (error) {
       console.error('Error updating preferences:', error)
-      // Revert local state on error
       setPreferences(userModel.preferences)
       throw error
     }
   }
 
-  /**
-   * Toggle a specific nav service on/off
-   * @param {string} service - Service key (google, apple, waze)
-   */
   const toggleNavService = async (service) => {
     const newPreferences = {
       ...preferences,
@@ -87,16 +79,34 @@ export function useUserPreferences() {
         ...preferences.navServices,
         [service]: !preferences.navServices[service],
       },
+      _updated: Date.now(),
     }
 
     await updatePreferences(newPreferences)
   }
 
-  return {
+  const value = {
     preferences,
     updatePreferences,
     toggleNavService,
     loading,
     isLoggedIn: !!currentUser,
   }
+
+  return (
+    <UserPreferencesContext.Provider value={value}>
+      {children}
+    </UserPreferencesContext.Provider>
+  )
+}
+
+/**
+ * Hook to use preferences from context
+ */
+export function useUserPreferences() {
+  const context = useContext(UserPreferencesContext)
+  if (!context) {
+    throw new Error('useUserPreferences must be used within UserPreferencesProvider')
+  }
+  return context
 }
