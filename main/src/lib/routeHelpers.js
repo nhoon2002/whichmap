@@ -81,17 +81,42 @@ export function calculateTimeSavings(routes) {
 }
 
 /**
+ * Format location for URL (handles both strings and coordinate objects)
+ * @param {string|object} location - Address string or {lat, lng} object
+ * @returns {string} Formatted location string
+ * @private
+ */
+function formatLocationForDeepLink(location) {
+  // If it's a coordinate object, format as "lat,lng"
+  if (typeof location === 'object' && location !== null && location.lat && location.lng) {
+    return `${location.lat},${location.lng}`
+  }
+  
+  // If it's a string, return as-is
+  if (typeof location === 'string') {
+    return location
+  }
+  
+  // Fallback for unexpected types
+  return String(location)
+}
+
+/**
  * Generate Universal Link for a provider (RECOMMENDED)
  * Universal Links work on all platforms - desktop opens in browser, mobile opens in app if installed
  * Based on: https://developers.google.com/maps/documentation/urls/ios-urlscheme
  * @param {string} provider - Provider id (google, apple, waze)
- * @param {string} start - Starting location
- * @param {string} end - Destination location
+ * @param {string|object} start - Starting location (address string or {lat, lng} object)
+ * @param {string|object} end - Destination location (address string or {lat, lng} object)
  * @returns {string} Universal Link URL
  */
 export function generateDeepLink(provider, start, end) {
-  const encodedStart = encodeURIComponent(start)
-  const encodedEnd = encodeURIComponent(end)
+  // Format locations to handle both strings and coordinate objects
+  const startStr = formatLocationForDeepLink(start)
+  const endStr = formatLocationForDeepLink(end)
+  
+  const encodedStart = encodeURIComponent(startStr)
+  const encodedEnd = encodeURIComponent(endStr)
 
   switch (provider) {
     case 'google':
