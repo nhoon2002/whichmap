@@ -20,27 +20,23 @@ export default function Home() {
   const [startCoordinates, setStartCoordinates] = useState(null)
   const [endCoordinates, setEndCoordinates] = useState(null)
 
+  // Store SUBMITTED values (only updated when button is clicked)
+  const [submittedStart, setSubmittedStart] = useState(null)
+  const [submittedEnd, setSubmittedEnd] = useState(null)
+
   const resultsRef = useRef(null)
   const { preferences } = useUserPreferences()
   const queryClient = useQueryClient()
 
-  // Track if user has submitted the form
-  const [hasSubmitted, setHasSubmitted] = useState(false)
-
-
-  // Prepare location data (coordinates if available, otherwise address for geocoding)
-  const startData = startCoordinates || startLocation
-  const endData = endCoordinates || endLocation
-
-  // Use the route comparison hook
-  // Only enable after user submits the form
+  // Use the route comparison hook with SUBMITTED values
+  // This prevents the query from running on every keystroke
   const {
     data: results,
     isLoading,
     error: queryError,
     refetch,
-  } = useRouteComparison(startData, endData, preferences, {
-    enabled: hasSubmitted && Boolean(startData && endData),
+  } = useRouteComparison(submittedStart, submittedEnd, preferences, {
+    enabled: Boolean(submittedStart && submittedEnd),
   })
 
   // Initialize global helpers on mount
@@ -49,11 +45,12 @@ export default function Home() {
   }, [])
 
   // When preferences change, invalidate the query to force refetch
+  // Only if user has already submitted a comparison
   useEffect(() => {
-    if (hasSubmitted) {
+    if (submittedStart && submittedEnd) {
       queryClient.invalidateQueries({ queryKey: ['routes'] })
     }
-  }, [preferences, hasSubmitted, queryClient])
+  }, [preferences, submittedStart, submittedEnd, queryClient])
 
   // Smooth scroll to results when they appear
   useEffect(() => {
@@ -78,8 +75,12 @@ export default function Home() {
       return
     }
 
-    // Enable the query (will auto-fetch with current preferences)
-    setHasSubmitted(true)
+    // Update submitted values - this will trigger the React Query to fetch
+    const startData = startCoordinates || start
+    const endData = endCoordinates || end
+
+    setSubmittedStart(startData)
+    setSubmittedEnd(endData)
   }
 
   // Filter and deduplicate results based on user preferences
@@ -170,7 +171,7 @@ export default function Home() {
                     distance={result.distance}
                     unit={result.unit}
                     isFastest={fastest && result.id === fastest.id}
-                    link={result.link || generateDeepLink(result.id, startLocation, endLocation)}
+                    link={result.link || generateDeepLink(result.id, submittedStart, submittedEnd)}
                   />
                 ))}
               </dl>
