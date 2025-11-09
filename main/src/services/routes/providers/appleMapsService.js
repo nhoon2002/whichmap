@@ -235,6 +235,7 @@ export async function getRouteVariants(origin, destination) {
 /**
  * Generate Universal Link for Apple Maps (RECOMMENDED)
  * Works on all platforms - automatically opens in app on iOS/macOS if installed
+ * Always uses driving directions
  * @param {string|object} origin
  * @param {string|object} destination
  * @returns {string} Universal Link URL
@@ -246,6 +247,7 @@ export function getUniversalLink(origin, destination) {
   const params = new URLSearchParams({
     saddr: originStr,
     daddr: destinationStr,
+    dirflg: 'd', // d = driving (always use driving directions)
   })
 
   return `https://maps.apple.com/?${params}`

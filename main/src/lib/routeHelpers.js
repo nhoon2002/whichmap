@@ -122,7 +122,7 @@ export function generateDeepLink(provider, start, end) {
     case 'google':
       return `https://www.google.com/maps/dir/?api=1&origin=${encodedStart}&destination=${encodedEnd}&travelmode=driving`
     case 'apple':
-      return `https://maps.apple.com/?saddr=${encodedStart}&daddr=${encodedEnd}`
+      return `https://maps.apple.com/?saddr=${encodedStart}&daddr=${encodedEnd}&dirflg=d`
     case 'waze':
       return `https://waze.com/ul?q=${encodedEnd}&navigate=yes`
     default:
