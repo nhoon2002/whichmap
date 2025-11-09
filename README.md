@@ -83,9 +83,10 @@ main/src/
 │   ├── ProviderCard.jsx          # Result card component
 │   ├── Settings.jsx              # User preferences (Coming Soon badges)
 │   └── TextInput.jsx             # Floating label input
+├── contexts/
+│   └── UserPreferencesContext.jsx # React Context for shared user preferences
 ├── hooks/
-│   ├── useRouteComparison.js     # React Query hook for routes
-│   └── useUserPreferences.js     # Firestore user preferences
+│   └── useRouteComparison.js      # React Query hook for routes
 ├── lib/
 │   ├── firebase.js               # Firebase initialization
 │   ├── helpers.js                # Global debug utilities

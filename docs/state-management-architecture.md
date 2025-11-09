@@ -9,7 +9,7 @@ WhichMap uses a **hybrid approach** combining multiple state management solution
 | Tool | Purpose | Use Cases |
 |------|---------|-----------|
 | **Local State** (useState) | Component-scoped state | Form inputs, UI toggles, temporary data |
-| **Custom Hooks** | Reusable stateful logic | Encapsulating Firebase, combining multiple states |
+| **React Context** | Global shared state | User preferences across multiple components |
 | **Firebase/Firestore** | Real-time user data | Auth, preferences, saved routes (persistent data) |
 | **React Query** | External API caching | Google Maps, Waze, Yelp, Google Places (transient data) |
 
@@ -18,36 +18,37 @@ WhichMap uses a **hybrid approach** combining multiple state management solution
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   React Components                  │
+│         (Settings, page.jsx, Header)                │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │   useState   │  │ Custom Hooks │  │ Context  │ │
-│  │  (UI State)  │  │ (Reusable)   │  │ (Rare)   │ │
-│  └──────────────┘  └──────┬───────┘  └──────────┘ │
-│                           │                         │
-│              ┌────────────┴────────────┐           │
-│              ▼                         ▼           │
-│  ┌────────────────────┐    ┌────────────────────┐ │
-│  │  useUserPreferences│    │ useRouteComparison │ │
-│  │   (Custom Hook)    │    │   (Custom Hook)    │ │
-│  └─────────┬──────────┘    └─────────┬──────────┘ │
-│            │                          │            │
-└────────────┼──────────────────────────┼────────────┘
-             │                          │
-             ▼                          ▼
-   ┌──────────────────┐      ┌──────────────────┐
-   │  Firebase/       │      │  React Query     │
-   │  Firestore       │      │  (Cached APIs)   │
-   │  (Real-time DB)  │      └─────────┬────────┘
-   └──────────────────┘                │
-                                       ▼
-                           ┌────────────────────────┐
-                           │  External APIs         │
-                           │  - Google Maps         │
-                           │  - Waze                │
-                           │  - Yelp                │
-                           │  - Google Places       │
-                           └────────────────────────┘
+│  ┌──────────────┐  ┌─────────────────────────────┐ │
+│  │   useState   │  │  UserPreferencesContext     │ │
+│  │  (UI State)  │  │  (Global Shared State)      │ │
+│  └──────────────┘  └──────────┬──────────────────┘ │
+│                               │                     │
+│                    ┌──────────┴──────────┐         │
+│                    ▼                     ▼         │
+│        ┌───────────────────┐  ┌──────────────────┐ │
+│        │ useUserPreferences│  │useRouteComparison│ │
+│        │  (Context Hook)   │  │  (Custom Hook)   │ │
+│        └─────────┬─────────┘  └─────────┬────────┘ │
+│                  │                       │          │
+└──────────────────┼───────────────────────┼──────────┘
+                   │                       │
+                   ▼                       ▼
+         ┌──────────────────┐   ┌──────────────────┐
+         │  Firebase/       │   │  React Query     │
+         │  Firestore       │   │  (Cached APIs)   │
+         │  (Real-time DB)  │   └─────────┬────────┘
+         └──────────────────┘             │
+                                          ▼
+                              ┌────────────────────────┐
+                              │  External APIs         │
+                              │  - Google Maps         │
+                              │  - Waze                │
+                              │  - Yelp                │
+                              │  - Google Places       │
+                              └────────────────────────┘
 ```
 
 ## When to Use What
@@ -72,7 +73,52 @@ const [isMenuOpen, setIsMenuOpen] = useState(false)
 - `src/app/page.jsx` - form inputs, loading, results
 - `src/components/Settings.jsx` - dropdown open/close
 
-### 2. Firebase/Firestore
+### 2. React Context (UserPreferencesContext)
+
+**Use for:** Global state that needs to be shared across multiple components
+
+**Why Context:**
+- ✅ Single source of truth (prevents multiple state instances)
+- ✅ No prop drilling through component tree
+- ✅ Components automatically re-render on state changes
+- ✅ Works with sibling components (Settings + page.jsx)
+
+**Examples:**
+```javascript
+// User preferences shared across Settings and page.jsx
+{
+  navServices: { google: true, apple: false, waze: true },
+  _updated: Date.now()
+}
+```
+
+**Current implementation:**
+- `src/contexts/UserPreferencesContext.jsx` - Context provider + hook
+- `src/app/layout.jsx` - Wraps app with provider
+
+**How to use:**
+```javascript
+// In components
+import { useUserPreferences } from '@/contexts/UserPreferencesContext'
+
+function MyComponent() {
+  const { preferences, toggleNavService, loading } = useUserPreferences()
+
+  if (loading) return <div>Loading...</div>
+
+  return (
+    <button onClick={() => toggleNavService('google')}>
+      Toggle Google Maps
+    </button>
+  )
+}
+```
+
+**Why we use Context instead of a hook:**
+- Before: Each component calling `useUserPreferences()` created separate state
+- After: Single shared state via Context, all components read from same source
+
+### 3. Firebase/Firestore
 
 **Use for:** User data that needs to persist across sessions
 
@@ -101,12 +147,12 @@ const [isMenuOpen, setIsMenuOpen] = useState(false)
 
 **Current implementation:**
 - `src/models/User.js` - Data layer (CRUD operations)
-- `src/hooks/useUserPreferences.js` - React layer (state + Firebase)
+- `src/contexts/UserPreferencesContext.jsx` - React Context layer (state + Firebase integration)
 
 **How to use:**
 ```javascript
-// In components
-import { useUserPreferences } from '@/hooks/useUserPreferences'
+// In components (via Context)
+import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 
 function MyComponent() {
   const { preferences, toggleNavService, loading } = useUserPreferences()
@@ -116,14 +162,14 @@ function MyComponent() {
   return <div>{JSON.stringify(preferences)}</div>
 }
 
-// In API routes or server-side
+// In API routes or server-side (direct model access)
 import { User } from '@/models/User'
 
 const user = await User.find(userId)
 await user.updatePreferences(newPrefs)
 ```
 
-### 3. React Query
+### 4. React Query
 
 **Use for:** External API data that needs caching
 
@@ -217,43 +263,50 @@ Need to store data?
 
 ```
 src/
+├── contexts/
+│   └── UserPreferencesContext.jsx  # React Context (shared state)
 ├── hooks/
-│   ├── useUserPreferences.js    # Firebase + React (user prefs)
-│   └── useRouteComparison.js    # React Query (API caching)
+│   └── useRouteComparison.js       # React Query (API caching)
 ├── models/
-│   └── User.js                  # Firebase data layer
+│   └── User.js                     # Firebase data layer
 ├── providers/
-│   └── QueryProvider.jsx        # React Query setup
+│   └── QueryProvider.jsx           # React Query setup
 └── app/
-    ├── layout.jsx               # Wraps app with QueryProvider
-    └── page.jsx                 # Uses useState + hooks
+    ├── layout.jsx                  # Wraps app with providers
+    └── page.jsx                    # Uses useState + Context
 ```
 
 ## Best Practices
 
 ### ✅ DO
 
-1. **Use Firebase for user data**
+1. **Use Context for shared global state**
    ```javascript
-   // User preferences, saved data
+   // User preferences across components
    const { preferences } = useUserPreferences()
    ```
 
-2. **Use React Query for API calls**
+2. **Use Firebase for persistent user data**
    ```javascript
-   // External APIs (Google, Yelp, etc.)
-   const { data } = useRouteComparison(start, end)
+   // Direct model access in API routes
+   const user = await User.find(userId)
    ```
 
-3. **Use useState for UI state**
+3. **Use React Query for API calls**
+   ```javascript
+   // External APIs (Google, Yelp, etc.)
+   const { data } = useRouteComparison(start, end, preferences)
+   ```
+
+4. **Use useState for UI state**
    ```javascript
    // Temporary, component-scoped
    const [isOpen, setIsOpen] = useState(false)
    ```
 
-4. **Separate concerns (Model → Hook → Component)**
+5. **Separate concerns (Model → Context → Component)**
    ```javascript
-   User.js → useUserPreferences.js → Component
+   User.js → UserPreferencesContext.jsx → Component
    ```
 
 ### ❌ DON'T
@@ -323,16 +376,18 @@ export function useBusinessSearch(location, category) {
 
 **Architecture:**
 - 📱 **Component state** → useState
-- 🔄 **Reusable logic** → Custom hooks
+- 🌍 **Global shared state** → React Context (UserPreferencesContext)
 - 💾 **User data** → Firebase/Firestore
 - 🌐 **API data** → React Query
 
 **Current state:**
-- ✅ Firebase for user preferences
-- ✅ React Query installed and ready
-- 🔜 Will migrate to React Query when adding real APIs
+- ✅ Context for user preferences (shared across components)
+- ✅ Firebase for user data persistence
+- ✅ React Query for route comparison API
+- ✅ All components read from single source of truth
 
-**Next steps:**
-1. Keep Firebase for user data (preferences, saved routes)
-2. Use React Query when we add Google Maps/Waze APIs
-3. Use React Query for Phase 4 business search
+**Key benefits:**
+1. Single shared state prevents multiple instances bug
+2. Firebase handles persistence and authentication
+3. React Query handles API caching and invalidation
+4. Clean separation of concerns
