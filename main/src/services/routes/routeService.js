@@ -2,11 +2,13 @@
  * Route Service - Orchestrator
  * Coordinates multiple map providers and returns unified results
  * Respects user preferences for which services to use
+ * Handles geocoding when addresses are provided instead of coordinates
  */
 
 import * as googleMapsService from './providers/googleMapsService'
 import * as appleMapsService from './providers/appleMapsService'
 import * as wazeService from './providers/wazeService'
+import { geocodeAddress } from '../geocoding/geocodingService'
 
 /**
  * Provider registry
@@ -23,7 +25,7 @@ const PROVIDERS = {
     id: 'apple',
     name: 'Apple Maps',
     service: appleMapsService,
-    hasAPI: false, // Deep links only
+    hasAPI: true, // Full route API available
   },
   waze: {
     id: 'waze',
@@ -34,14 +36,41 @@ const PROVIDERS = {
 }
 
 /**
+ * Normalize location to coordinates
+ * Accepts either coordinates object or address string (geocodes if needed)
+ * @param {string|object} location - Address string or {lat, lng} object
+ * @returns {Promise<object>} {lat, lng} coordinates
+ * @private
+ */
+async function normalizeLocation(location) {
+  // If already coordinates, return as-is
+  if (typeof location === 'object' && location.lat && location.lng) {
+    return location
+  }
+
+  // If string address, geocode it
+  if (typeof location === 'string') {
+    const geocoded = await geocodeAddress(location)
+    return geocoded.coordinates
+  }
+
+  throw new Error('Invalid location format. Must be address string or {lat, lng} object')
+}
+
+/**
  * Compare routes across multiple providers
- * @param {string} origin - Starting location
- * @param {string} destination - Ending location
+ * @param {string|object} origin - Starting location (address string or {lat, lng} object)
+ * @param {string|object} destination - Ending location (address string or {lat, lng} object)
  * @param {object} preferences - User preferences { navServices: { google, apple, waze } }
  * @returns {Promise<Array>} Array of route comparisons
  */
 export async function compareRoutes(origin, destination, preferences = {}) {
   const navServices = preferences?.navServices || {}
+
+  // Geocode addresses to coordinates if needed
+  // This is required for Apple Maps ETA API which only accepts coordinates
+  const originCoords = await normalizeLocation(origin)
+  const destinationCoords = await normalizeLocation(destination)
 
   // Build array of provider requests using generic fetch function
   // Filter by TWO conditions:
@@ -51,16 +80,17 @@ export async function compareRoutes(origin, destination, preferences = {}) {
     .filter(([providerId, providerConfig]) => {
       // Check if provider has API implementation
       const isImplemented = providerConfig.hasAPI === true
-      
+
       // Check if user has enabled this service in preferences
       // If not specified in preferences, default to false (opt-in)
       const isEnabledByUser = navServices[providerId] === true
-      
+
       // Only include if BOTH conditions are met
       return isImplemented && isEnabledByUser
     })
     .map(([providerId, providerConfig]) =>
-      fetchRouteFromProvider(providerConfig, origin, destination).catch(error => ({
+      // Use coordinates for all providers (geocoded if needed)
+      fetchRouteFromProvider(providerConfig, originCoords, destinationCoords).catch(error => ({
         provider: providerId,
         error: error.message,
         routes: [],

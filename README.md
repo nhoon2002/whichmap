@@ -54,13 +54,16 @@ The repository contains:
 
 **Phase 3 - API Integration & Security (COMPLETE)**
 - ✅ Google Maps Routes API v2 integration (working)
+- ✅ Apple Maps Server API integration (ETA only - no route polylines)
+- ✅ Google Geocoding API (server-side)
+- ✅ Google Places Autocomplete with debouncing
+- ✅ AutocompleteInput component with dropdown UI
 - ✅ Service layer architecture (routeService.js)
 - ✅ React Query caching
 - ✅ Rate limiting (10 req/min per IP)
-- ✅ Input validation with Zod schemas
+- ✅ Input validation with Zod schemas (accepts addresses OR coordinates)
 - ✅ Error sanitization (no internal details exposed)
-- ⚠️ Apple Maps - marked as "Coming Soon" (no public API)
-- ⚠️ Waze - marked as "Coming Soon" (no public API)
+- ⚠️ Waze - marked as "Coming Soon" (no public API available)
 
 ---
 
@@ -69,11 +72,15 @@ The repository contains:
 ```
 main/src/
 ├── app/
-│   ├── api/compare/route.js      # API endpoint (rate limited, validated)
+│   ├── api/
+│   │   ├── compare/route.js      # Route comparison endpoint (rate limited, validated)
+│   │   ├── geocode/route.js      # Google Geocoding API endpoint
+│   │   └── autocomplete/route.js # Google Places Autocomplete endpoint
 │   ├── login/page.jsx            # Authentication page
 │   ├── layout.jsx                # Root layout with ErrorBoundary
-│   └── page.jsx                  # Main comparison page (refactored)
+│   └── page.jsx                  # Main comparison page (with autocomplete)
 ├── components/
+│   ├── AutocompleteInput.jsx     # Google Places autocomplete with dropdown
 │   ├── Border.jsx                # Decorative accent lines
 │   ├── Button.jsx                # Primary action button
 │   ├── Container.jsx             # Max-width wrapper
@@ -86,13 +93,15 @@ main/src/
 ├── contexts/
 │   └── UserPreferencesContext.jsx # React Context for shared user preferences
 ├── hooks/
-│   └── useRouteComparison.js      # React Query hook for routes
+│   ├── useAutocomplete.js        # Google Places autocomplete hook (debounced)
+│   └── useRouteComparison.js     # React Query hook for routes
 ├── lib/
+│   ├── appleJWT.js               # Apple Maps JWT token generator & access token exchange
 │   ├── firebase.js               # Firebase initialization
 │   ├── helpers.js                # Global debug utilities
 │   ├── ratelimit.js              # Rate limiting utility (Upstash/in-memory)
 │   ├── routeHelpers.js           # Route filtering & business logic
-│   └── validation.js             # Zod schemas for input validation
+│   └── validation.js             # Zod schemas (accepts addresses OR coordinates)
 ├── models/
 │   └── User.js                   # User data model (Firestore)
 ├── providers/
@@ -100,12 +109,15 @@ main/src/
 ├── services/
 │   ├── auth/
 │   │   └── authService.js        # Auth operations
+│   ├── geocoding/
+│   │   ├── geocodingService.js   # Google Geocoding client service
+│   │   └── autocompleteService.js # Google Places Autocomplete client service
 │   └── routes/
-│       ├── routeService.js       # Route orchestrator
+│       ├── routeService.js       # Route orchestrator (with geocoding support)
 │       └── providers/
-│           ├── googleMapsService.js  # Google Maps API
-│           ├── appleMapsService.js   # Apple Maps (placeholder)
-│           └── wazeService.js        # Waze (placeholder)
+│           ├── googleMapsService.js  # Google Maps Routes API v2
+│           ├── appleMapsService.js   # Apple Maps ETA API
+│           └── wazeService.js        # Waze (deep links only)
 └── styles/
     ├── tailwind.css              # Tailwind v4 theme
     └── base.css                  # Mona Sans font
@@ -256,21 +268,25 @@ npm run lint
 1. ✅ Full UI with animations
 2. ✅ Firebase authentication
 3. ✅ Google Maps Routes API integration
-4. ✅ User preferences (show/hide services)
-5. ✅ React Query caching
-6. ✅ Responsive design
-7. ✅ **Rate limiting (10 req/min per IP)**
-8. ✅ **Input validation with Zod**
-9. ✅ **Error boundaries**
-10. ✅ **Refactored state management (no duplication)**
-11. ✅ **Business logic in service layer**
-12. ✅ **Organized services directory structure**
+4. ✅ Apple Maps ETA API integration (distance + time only)
+5. ✅ **Google Places Autocomplete with debouncing**
+6. ✅ **Google Geocoding API (server-side)**
+7. ✅ **AutocompleteInput component with dropdown**
+8. ✅ User preferences (show/hide services)
+9. ✅ React Query caching
+10. ✅ Responsive design
+11. ✅ Rate limiting (10 req/min per IP)
+12. ✅ Input validation with Zod (accepts addresses OR coordinates)
+13. ✅ Error boundaries
+14. ✅ Refactored state management (no duplication)
+15. ✅ Business logic in service layer
+16. ✅ Organized services directory structure
 
 ### What's Pending
 
-1. ⏳ Apple Maps integration (no public API available - marked as "Coming Soon")
-2. ⏳ Waze integration (no public API available - marked as "Coming Soon")
-3. ⏳ API key authentication for `/api/compare` (for monetization)
+1. ⏳ Waze integration (no public API available - marked as "Coming Soon")
+2. ⏳ API key authentication for `/api/compare` (for monetization)
+3. ⏳ Geocoding result caching in Firestore (reduce API costs)
 4. ⏳ Deployment configuration (Vercel/production)
 
 ### Phase 4 - Destination Discovery (Future)
@@ -296,6 +312,11 @@ The app requires these environment variables:
 
 ### Google Maps (Server-side only)
 - `GOOGLE_MAPS_API_KEY` - Google Maps API key (kept server-side for security)
+
+### Apple Maps (Server-side only)
+- `APPLE_MAPS_TEAM_ID` - Apple Developer Team ID (10 characters)
+- `APPLE_MAPS_KEY_ID` - Apple Maps API Key ID (10 characters)
+- `APPLE_MAPS_PRIVATE_KEY` - Apple Maps Private Key (.p8 file contents)
 
 ---
 
@@ -327,11 +348,14 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## 🚀 Key Insights
 
-1. **Google Maps is the only provider with a working API** - Apple and Waze only support deep links
-2. **Routes API v2 is slower but more accurate** - Trade-off documented in code
-3. **React Query handles all API caching** - No need for manual cache management
-4. **Firebase handles all user data** - Auth + Firestore for preferences
-5. **The app is production-ready** - Just needs environment variables configured
+1. **Apple Maps Server API is LIMITED** - Only provides ETA (distance + time), no route polylines or turn-by-turn
+2. **Apple Maps requires two-step auth** - JWT token → Access token → API calls
+3. **Google Places Autocomplete optimizes costs** - Geocoding only when needed (fallback)
+4. **Waze has no public API** - Only deep links available
+5. **Routes API v2 is slower but more accurate** - ~4s vs ~500ms (legacy), but includes traffic
+6. **React Query handles all API caching** - No need for manual cache management
+7. **Firebase handles all user data** - Auth + Firestore for preferences
+8. **The app is production-ready** - Just needs environment variables configured
 
 ---
 

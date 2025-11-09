@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Container } from '@/components/Container'
 import { FadeIn, FadeInStagger } from '@/components/FadeIn'
-import { TextInput } from '@/components/TextInput'
+import { AutocompleteInput } from '@/components/AutocompleteInput'
 import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
@@ -13,8 +13,13 @@ import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
 
 export default function Home() {
-  const [startLocation, setStartLocation] = useState('1932 Selby Ave, Los Angeles, CA 90025')
-  const [endLocation, setEndLocation] = useState('111 N Broadway, Los Angeles, CA 90012')
+  const [startLocation, setStartLocation] = useState('')
+  const [endLocation, setEndLocation] = useState('')
+
+  // Store geocoded coordinates
+  const [startCoordinates, setStartCoordinates] = useState(null)
+  const [endCoordinates, setEndCoordinates] = useState(null)
+
   const resultsRef = useRef(null)
   const { preferences } = useUserPreferences()
   const queryClient = useQueryClient()
@@ -23,6 +28,10 @@ export default function Home() {
   const [hasSubmitted, setHasSubmitted] = useState(false)
 
 
+  // Prepare location data (coordinates if available, otherwise address for geocoding)
+  const startData = startCoordinates || startLocation
+  const endData = endCoordinates || endLocation
+
   // Use the route comparison hook
   // Only enable after user submits the form
   const {
@@ -30,8 +39,8 @@ export default function Home() {
     isLoading,
     error: queryError,
     refetch,
-  } = useRouteComparison(startLocation, endLocation, preferences, {
-    enabled: hasSubmitted && Boolean(startLocation && endLocation),
+  } = useRouteComparison(startData, endData, preferences, {
+    enabled: hasSubmitted && Boolean(startData && endData),
   })
 
   // Initialize global helpers on mount
@@ -93,18 +102,28 @@ export default function Home() {
 
         <FadeIn animate className="mt-16">
           <form onSubmit={handleSubmit}>
-            <div className="isolate -space-y-px rounded-2xl bg-white">
-              <TextInput
+            <div className="relative -space-y-px rounded-2xl bg-white">
+              <AutocompleteInput
                 label="Starting Location"
                 value={startLocation}
-                onChange={(e) => setStartLocation(e.target.value)}
+                onChange={(value) => setStartLocation(value)}
+                onSelect={(place) => {
+                  setStartLocation(place.address)
+                  setStartCoordinates(place.coordinates)
+                }}
                 autoComplete="off"
+                className="rounded-t-2xl"
               />
-              <TextInput
+              <AutocompleteInput
                 label="Destination"
                 value={endLocation}
-                onChange={(e) => setEndLocation(e.target.value)}
+                onChange={(value) => setEndLocation(value)}
+                onSelect={(place) => {
+                  setEndLocation(place.address)
+                  setEndCoordinates(place.coordinates)
+                }}
                 autoComplete="off"
+                className="rounded-b-2xl"
               />
             </div>
 
@@ -116,7 +135,7 @@ export default function Home() {
 
             <Button
               type="submit"
-              className="mt-10"
+              className="relative z-0 mt-10"
               disabled={isLoading}
             >
               {isLoading ? 'Comparing routes...' : 'Compare Routes'}

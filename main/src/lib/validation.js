@@ -20,11 +20,25 @@ const addressSchema = z
   .trim()
 
 /**
+ * Coordinate validation schema
+ * Validates {lat, lng} objects
+ */
+const coordinateSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+})
+
+/**
+ * Location schema - accepts either address string or coordinates
+ */
+const locationSchema = z.union([addressSchema, coordinateSchema])
+
+/**
  * Route comparison request schema
  */
 export const routeComparisonSchema = z.object({
-  start: addressSchema,
-  end: addressSchema,
+  start: locationSchema,
+  end: locationSchema,
   preferences: z
     .object({
       navServices: z

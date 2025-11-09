@@ -17,6 +17,7 @@
     "clsx": "^2.1.1",
     "firebase": "^12.5.0",
     "framer-motion": "^12.23.11",
+    "jsonwebtoken": "^9.0.2",
     "next": "16.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
@@ -24,6 +25,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "dotenv": "^17.2.3",
     "eslint": "^9.32.0",
     "eslint-config-next": "16.0.1",
     "prettier": "^3.6.2",

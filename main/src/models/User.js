@@ -15,7 +15,7 @@ export class User {
     navServices: {
       google: true,
       apple: true,
-      waze: true,
+      waze: false, // Waze not yet implemented
     },
   }
 

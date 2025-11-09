@@ -27,7 +27,7 @@ export function Settings() {
 
   const navServices = [
     { key: 'google', label: 'Google Maps', available: true },
-    { key: 'apple', label: 'Apple Maps', available: false, comingSoon: true },
+    { key: 'apple', label: 'Apple Maps', available: true },
     { key: 'waze', label: 'Waze', available: false, comingSoon: true },
   ]
 

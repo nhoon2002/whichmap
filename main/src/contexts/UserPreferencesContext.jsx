@@ -15,9 +15,9 @@ export function UserPreferencesProvider({ children }) {
   const [userModel, setUserModel] = useState(null)
   const [preferences, setPreferences] = useState(() => ({
     navServices: {
-      google: false,
+      google: true,
       apple: true,
-      waze: true,
+      waze: false, // Waze not yet implemented
     },
   }))
   const [loading, setLoading] = useState(true)

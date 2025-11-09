@@ -20,9 +20,39 @@ const routesClient = new RoutesClient({
 })
 
 /**
+ * Format location for Google Maps Routes API
+ * Accepts either address string or coordinate object
+ * @param {string|object} location - Address string or {lat, lng} object
+ * @returns {object} Formatted location for Google Maps API
+ * @private
+ */
+function formatLocation(location) {
+  // If it's a coordinate object, format for Google Maps
+  if (typeof location === 'object' && location.lat && location.lng) {
+    return {
+      location: {
+        latLng: {
+          latitude: location.lat,
+          longitude: location.lng,
+        },
+      },
+    }
+  }
+
+  // If it's a string address, use address format
+  if (typeof location === 'string') {
+    return {
+      address: location,
+    }
+  }
+
+  throw new Error('Invalid location format. Must be address string or {lat, lng} object')
+}
+
+/**
  * Get route from Google Maps Routes API (v2)
- * @param {string} origin - Starting location (address or coordinates)
- * @param {string} destination - Ending location (address or coordinates)
+ * @param {string|object} origin - Starting location (address string or {lat, lng} object)
+ * @param {string|object} destination - Ending location (address string or {lat, lng} object)
  * @param {object} options - Additional options (avoid, travel_mode, etc.)
  * @returns {Promise<object>} Normalized route object
  */
@@ -34,12 +64,8 @@ export async function getRoute(origin, destination, options = {}) {
   try {
     // Prepare request for Routes API
     const request = {
-      origin: {
-        address: origin,
-      },
-      destination: {
-        address: destination,
-      },
+      origin: formatLocation(origin),
+      destination: formatLocation(destination),
       travelMode: 'DRIVE',
       routingPreference: 'TRAFFIC_AWARE_OPTIMAL', // Use traffic data for best ETA
       computeAlternativeRoutes: true, // Get multiple route options

@@ -111,28 +111,49 @@ main/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   └── compare/
-│   │   │       └── route.js # API endpoint for route comparison
+│   │   │   ├── compare/
+│   │   │   │   └── route.js      # API endpoint for route comparison
+│   │   │   ├── geocode/
+│   │   │   │   └── route.js      # Google Geocoding API endpoint
+│   │   │   └── autocomplete/
+│   │   │       └── route.js      # Google Places Autocomplete API endpoint
 │   │   ├── login/
-│   │   │   └── page.jsx     # Authentication page (email/password + Google OAuth)
-│   │   ├── layout.jsx       # Root layout with Header component
-│   │   └── page.jsx         # Main comparison page (client component)
+│   │   │   └── page.jsx          # Authentication page (email/password + Google OAuth)
+│   │   ├── layout.jsx            # Root layout with Header component
+│   │   └── page.jsx              # Main comparison page (with autocomplete)
 │   ├── components/
-│   │   ├── Border.jsx       # Decorative accent lines (from v1)
-│   │   ├── Button.jsx       # Primary action button (from v1)
-│   │   ├── Container.jsx    # Max-width wrapper (from v1)
-│   │   ├── FadeIn.jsx       # Animation components (from v1, fixed)
-│   │   ├── Header.jsx       # Navigation with auth state and Sign In/Out
-│   │   ├── ProviderCard.jsx # Custom result card component
-│   │   └── TextInput.jsx    # Custom floating label input
+│   │   ├── AutocompleteInput.jsx # Google Places autocomplete input with dropdown
+│   │   ├── Border.jsx            # Decorative accent lines (from v1)
+│   │   ├── Button.jsx            # Primary action button (from v1)
+│   │   ├── Container.jsx         # Max-width wrapper (from v1)
+│   │   ├── FadeIn.jsx            # Animation components (from v1, fixed)
+│   │   ├── Header.jsx            # Navigation with auth state and Sign In/Out
+│   │   ├── ProviderCard.jsx      # Custom result card component
+│   │   └── TextInput.jsx         # Custom floating label input
+│   ├── hooks/
+│   │   ├── useAutocomplete.js    # Google Places autocomplete hook with debouncing
+│   │   └── useRouteComparison.js # React Query hook for route fetching
+│   ├── services/
+│   │   ├── geocoding/
+│   │   │   ├── geocodingService.js    # Google Geocoding client service
+│   │   │   └── autocompleteService.js # Google Places Autocomplete client service
+│   │   └── routes/
+│   │       ├── routeService.js        # Route orchestrator (coordinates all providers)
+│   │       └── providers/
+│   │           ├── googleMapsService.js # Google Maps Routes API v2
+│   │           ├── appleMapsService.js  # Apple Maps ETA API
+│   │           └── wazeService.js       # Waze (deep links only)
 │   ├── lib/
-│   │   ├── firebase.js      # Firebase initialization and auth
-│   │   └── helpers.js       # Global debug utilities
+│   │   ├── appleJWT.js           # Apple Maps JWT token generator & access token exchange
+│   │   ├── firebase.js           # Firebase initialization and auth
+│   │   ├── helpers.js            # Global debug utilities
+│   │   ├── validation.js         # Zod schemas (accepts addresses OR coordinates)
+│   │   └── routeHelpers.js       # Route filtering and deep link generation
 │   ├── types/
-│   │   └── global.d.ts      # TypeScript declarations for window helpers
+│   │   └── global.d.ts           # TypeScript declarations for window helpers
 │   └── styles/
-│       ├── tailwind.css     # Tailwind v4 theme config
-│       └── base.css         # Mona Sans font
+│       ├── tailwind.css          # Tailwind v4 theme config
+│       └── base.css              # Mona Sans font
 ```
 
 ### Global Helpers System
@@ -216,43 +237,65 @@ See `docs/firebase-setup.md` for complete setup guide including:
 
 ### API Route Architecture
 
-**Endpoint:** `POST /api/compare`
+**Endpoints:**
 
-The route comparison logic has been separated into a dedicated API route for:
-- External API access (React Native apps, third-party integrations)
-- Future monetization with API key authentication
-- Clean separation of concerns
+1. **`POST /api/compare`** - Route comparison across providers
+   - Accepts: `{ start, end, preferences }` (start/end can be addresses or coordinates)
+   - Returns: Route comparison results from enabled providers
+   - Features: Rate limiting, input validation, error sanitization
+   - Auto-geocodes addresses to coordinates when needed
 
-**Current Implementation:**
-- Accepts POST requests with `{ start, end }` in JSON body
-- Also supports GET requests with query parameters
-- Returns mock data with simulated 1.5s delay
-- Ready for API key validation (TODO comments in place)
+2. **`POST /api/geocode`** - Google Geocoding API
+   - Accepts: `{ address }` (forward) or `{ lat, lng }` (reverse)
+   - Returns: Formatted address + coordinates
+   - Server-side only (protects API key)
+
+3. **`GET /api/autocomplete`** - Google Places Autocomplete
+   - Accepts: `?input=user_query`
+   - Returns: Address predictions as user types
+   - Debounced on client-side (300ms)
+
+4. **`POST /api/autocomplete`** - Get Place Details
+   - Accepts: `{ placeId }`
+   - Returns: Full address + coordinates for selected place
 
 **Usage:**
 ```javascript
+// Route comparison with autocomplete coordinates
 const response = await fetch('/api/compare', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ start, end })
+  body: JSON.stringify({
+    start: { lat: 37.7749, lng: -122.4194 }, // Coordinates from autocomplete
+    end: { lat: 34.0522, lng: -118.2437 },
+    preferences: { navServices: { google: true, apple: true } }
+  })
 })
 const { results } = await response.json()
 ```
 
 See `docs/api-usage.md` for complete API documentation including React Native examples.
 
-### Mock Data Currently in Use
+### Google Places Autocomplete System
 
-```javascript
-// main/src/app/page.jsx
-MOCK_DATA = {
-  google: { provider: 'Google Maps', eta: 25, distance: '15.2 mi' },
-  apple: { provider: 'Apple Maps', eta: 23, distance: '15.1 mi' },  // Fastest
-  waze: { provider: 'Waze', eta: 27, distance: '15.3 mi' }
-}
-```
+**AutocompleteInput Component:**
+- Debounced search (300ms delay)
+- Dropdown with predictions
+- Loading indicator
+- Click-outside to close
+- Prevents re-opening after selection (justSelected flag)
+- "Powered by Google" branding (required by ToS)
 
-Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
+**User Flow:**
+1. User types → Autocomplete shows suggestions after 300ms
+2. User selects → Stores coordinates + formatted address
+3. Submit → Uses coordinates directly (no geocoding needed)
+4. Fallback → If user types manually, API geocodes server-side
+
+**Cost Optimization:**
+- Autocomplete: ~$2.83 per 1,000 sessions
+- Geocoding: $5.00 per 1,000 requests (fallback only)
+- React Query caches results for 5 minutes
 
 ### Phase 2 - Infrastructure ✅ COMPLETE
 
@@ -264,19 +307,27 @@ Default form values: LA addresses (1932 Selby Ave → 111 N Broadway)
 - ✅ Environment variable configuration
 - ✅ Documentation for Firebase setup and API usage
 
-### Ready for Phase 3 - API Integration
+### Phase 3 - API Integration & Security ✅ COMPLETE
 
-**Next steps to implement:**
-- [ ] Real geocoding (address → coordinates)
-- [ ] Google Maps Directions API integration
-- [ ] Waze API integration (if available)
-- [ ] Error handling for API failures
-- [ ] Caching layer for geocoding and routes
-- [ ] API key authentication for `/api/compare` endpoint
-- [ ] Rate limiting per user/session
-- [ ] User preferences in Firestore (show/hide specific nav services)
+**Completed:**
+- ✅ Google Maps Routes API v2 integration
+- ✅ Apple Maps Server API integration with JWT authentication (two-step: JWT → Access Token → ETA API)
+- ✅ Apple Maps /v1/etas endpoint (NOTE: Only provides distance + time, no route polylines)
+- ✅ Google Geocoding API integration (server-side)
+- ✅ Google Places Autocomplete with debouncing (300ms)
+- ✅ AutocompleteInput component with dropdown UI
+- ✅ Coordinate support for all providers (geocoding when needed)
+- ✅ Service layer architecture (routeService.js with normalizeLocation)
+- ✅ React Query caching
+- ✅ Rate limiting (10 req/min per IP)
+- ✅ Input validation with Zod schemas (accepts addresses OR coordinates)
+- ✅ Error sanitization (no internal details exposed)
+- ✅ User preferences in Firestore (show/hide specific nav services)
 
-All `TODO` comments are marked in code where API integration is needed.
+**Next steps:**
+- [ ] Waze API integration (no public API available)
+- [ ] API key authentication for `/api/compare` endpoint (for monetization)
+- [ ] Geocoding result caching in Firestore (reduce API costs)
 
 ### Phase 4 - Destination Discovery (Secondary Feature) 💡
 
