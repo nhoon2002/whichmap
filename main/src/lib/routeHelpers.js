@@ -81,11 +81,13 @@ export function calculateTimeSavings(routes) {
 }
 
 /**
- * Generate deep link URL for a provider
+ * Generate Universal Link for a provider (RECOMMENDED)
+ * Universal Links work on all platforms - desktop opens in browser, mobile opens in app if installed
+ * Based on: https://developers.google.com/maps/documentation/urls/ios-urlscheme
  * @param {string} provider - Provider id (google, apple, waze)
  * @param {string} start - Starting location
  * @param {string} end - Destination location
- * @returns {string} Deep link URL
+ * @returns {string} Universal Link URL
  */
 export function generateDeepLink(provider, start, end) {
   const encodedStart = encodeURIComponent(start)
@@ -93,12 +95,11 @@ export function generateDeepLink(provider, start, end) {
 
   switch (provider) {
     case 'google':
-      return `https://www.google.com/maps/dir/?api=1&origin=${encodedStart}&destination=${encodedEnd}`
+      return `https://www.google.com/maps/dir/?api=1&origin=${encodedStart}&destination=${encodedEnd}&travelmode=driving`
     case 'apple':
       return `https://maps.apple.com/?saddr=${encodedStart}&daddr=${encodedEnd}`
     case 'waze':
-      // TODO: Use coordinate format (ll.{lat},{lon}) when geocoding is implemented
-      return `https://www.waze.com/live-map/directions?from=${encodedStart}&to=${encodedEnd}`
+      return `https://waze.com/ul?q=${encodedEnd}&navigate=yes`
     default:
       return '#'
   }

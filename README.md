@@ -97,6 +97,7 @@ main/src/
 │   └── useRouteComparison.js     # React Query hook for routes
 ├── lib/
 │   ├── appleJWT.js               # Apple Maps JWT token generator & access token exchange
+│   ├── deeplinkHelpers.js        # Universal link generation for all providers
 │   ├── firebase.js               # Firebase initialization
 │   ├── helpers.js                # Global debug utilities
 │   ├── ratelimit.js              # Rate limiting utility (Upstash/in-memory)
@@ -117,7 +118,7 @@ main/src/
 │       └── providers/
 │           ├── googleMapsService.js  # Google Maps Routes API v2
 │           ├── appleMapsService.js   # Apple Maps ETA API
-│           └── wazeService.js        # Waze (deep links only)
+│           └── wazeService.js        # Waze (universal links only)
 └── styles/
     ├── tailwind.css              # Tailwind v4 theme
     └── base.css                  # Mona Sans font
@@ -351,11 +352,12 @@ Comprehensive documentation is available in the `docs/` directory:
 1. **Apple Maps Server API is LIMITED** - Only provides ETA (distance + time), no route polylines or turn-by-turn
 2. **Apple Maps requires two-step auth** - JWT token → Access token → API calls
 3. **Google Places Autocomplete optimizes costs** - Geocoding only when needed (fallback)
-4. **Waze has no public API** - Only deep links available
-5. **Routes API v2 is slower but more accurate** - ~4s vs ~500ms (legacy), but includes traffic
-6. **React Query handles all API caching** - No need for manual cache management
-7. **Firebase handles all user data** - Auth + Firestore for preferences
-8. **The app is production-ready** - Just needs environment variables configured
+4. **Waze has no public API** - Only universal links available for navigation
+5. **Universal Links work across platforms** - Automatically open native app on mobile, web on desktop
+6. **Routes API v2 is slower but more accurate** - ~4s vs ~500ms (legacy), but includes traffic
+7. **React Query handles all API caching** - No need for manual cache management
+8. **Firebase handles all user data** - Auth + Firestore for preferences
+9. **The app is production-ready** - Just needs environment variables configured
 
 ---
 

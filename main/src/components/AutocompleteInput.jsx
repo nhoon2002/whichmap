@@ -96,7 +96,7 @@ export function AutocompleteInput({
           onChange={onInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => predictions.length > 0 && setShowDropdown(true)}
-          placeholder={placeholder || label}
+          placeholder=" "
           className={`
             peer w-full border border-neutral-300 px-6 pb-4 pt-12
             text-base/6 text-neutral-950 ring-4 ring-transparent

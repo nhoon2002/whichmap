@@ -126,9 +126,8 @@ async function fetchRouteFromProvider(providerConfig, origin, destination) {
       provider: id,
       routes: data.routes.map(route => ({
         ...route,
-        // Add deep/web links from service
-        deepLink: service.getDeepLinkUrl?.(origin, destination),
-        webLink: service.getWebUrl?.(origin, destination),
+        // Use Universal Link (recommended) - works on all platforms
+        link: service.getUniversalLink?.(origin, destination) || service.getWebUrl?.(origin, destination),
       })),
     }
   }
@@ -138,8 +137,8 @@ async function fetchRouteFromProvider(providerConfig, origin, destination) {
     provider: id,
     routes: [{
       provider: id,
-      deepLink: service.getDeepLinkUrl?.(origin, destination),
-      webLink: service.getWebUrl?.(origin, destination),
+      // Use Universal Link (recommended) - works on all platforms
+      link: service.getUniversalLink?.(origin, destination) || service.getWebUrl?.(origin, destination),
       message: `Open in ${providerConfig.name} app to view route`,
     }],
   }

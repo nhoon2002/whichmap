@@ -14,12 +14,12 @@ The application follows a simple client-side architecture with the following cor
 1. **Geocoding Layer**: Converts user-entered addresses to coordinates (lat/lng)
 2. **Provider Fetchers**: Parallel API calls to Google Maps, Apple Maps (web fallback), and Waze
 3. **Comparison Logic**: Determines the fastest route from returned ETAs
-4. **Deep Linking**: Opens selected route in the corresponding native app or web page
+4. **Universal Links**: Opens selected route in the corresponding native app or web page
 
 ### API Integration Strategy
 - **Google Maps Directions API**: Returns ETA, distance, route summary (requires API key)
-- **Apple Maps**: No open API; uses web deep links or mocked data
-- **Waze Routing API**: Accepts coordinates, returns route summary and ETA (no auth for MVP)
+- **Apple Maps Server API**: Provides ETA only (distance + time); uses universal links for navigation
+- **Waze**: No public API; uses universal links for navigation
 
 ### State Management Pattern
 The application maintains:
@@ -79,10 +79,10 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 
 **Features Working:**
 - ✅ Form validation (requires both start and end)
-- ✅ Mock data with 1.5s simulated API delay
+- ✅ Real-time route comparison from enabled providers
 - ✅ Fastest route detection (compares ETAs)
 - ✅ Green highlighting for fastest provider
-- ✅ Deep links to all 3 providers (Google Maps, Apple Maps, Waze)
+- ✅ Universal links to all 3 providers (Google Maps, Apple Maps, Waze)
 - ✅ Framer Motion animations (FadeIn/FadeInStagger)
 - ✅ Smooth scroll animation after results load
 - ✅ Buy Me a Coffee link in footer (https://buymeacoffee.com/whichmap)
@@ -142,13 +142,14 @@ main/
 │   │       └── providers/
 │   │           ├── googleMapsService.js # Google Maps Routes API v2
 │   │           ├── appleMapsService.js  # Apple Maps ETA API
-│   │           └── wazeService.js       # Waze (deep links only)
+│   │           └── wazeService.js       # Waze (universal links only)
 │   ├── lib/
 │   │   ├── appleJWT.js           # Apple Maps JWT token generator & access token exchange
+│   │   ├── deeplinkHelpers.js    # Universal link generation for all providers
 │   │   ├── firebase.js           # Firebase initialization and auth
 │   │   ├── helpers.js            # Global debug utilities
 │   │   ├── validation.js         # Zod schemas (accepts addresses OR coordinates)
-│   │   └── routeHelpers.js       # Route filtering and deep link generation
+│   │   └── routeHelpers.js       # Route filtering and business logic
 │   ├── types/
 │   │   └── global.d.ts           # TypeScript declarations for window helpers
 │   └── styles/
@@ -462,9 +463,9 @@ After comparing travel times, users can search for businesses near their destina
 
 ## Development Phases
 
-1. **Phase 1 - Core UI** ✅: Form inputs, result cards, loading states, animations, deep links
+1. **Phase 1 - Core UI** ✅: Form inputs, result cards, loading states, animations, universal links
 2. **Phase 2 - Infrastructure** ✅: Authentication, API routes, environment config, documentation
-3. **Phase 3 - API Integration**: Real geocoding, Google Maps/Waze APIs, caching, user preferences (Firestore)
+3. **Phase 3 - API Integration** ✅: Google Geocoding, Autocomplete, Google Maps/Apple Maps APIs, caching, user preferences (Firestore)
 4. **Phase 4 - Destination Discovery** 💡: Secondary feature - Find businesses near destination (Yelp + Google Places comparison)
 5. **Phase 5 - User Features**: Saved routes, favorites, search history, personalized recommendations
 6. **Phase 6 - Deployment**: Public hosting, real-world testing, monitoring, analytics

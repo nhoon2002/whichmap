@@ -233,8 +233,28 @@ export async function getRouteVariants(origin, destination) {
 }
 
 /**
+ * Generate Universal Link for Apple Maps (RECOMMENDED)
+ * Works on all platforms - automatically opens in app on iOS/macOS if installed
+ * @param {string|object} origin
+ * @param {string|object} destination
+ * @returns {string} Universal Link URL
+ */
+export function getUniversalLink(origin, destination) {
+  const originStr = formatLocationForUrl(origin)
+  const destinationStr = formatLocationForUrl(destination)
+
+  const params = new URLSearchParams({
+    saddr: originStr,
+    daddr: destinationStr,
+  })
+
+  return `https://maps.apple.com/?${params}`
+}
+
+/**
  * Generate deep link URL for Apple Maps app
  * Opens in Apple Maps app on iOS/macOS
+ * Note: Universal Links are recommended over this
  * @param {string|object} origin
  * @param {string|object} destination
  * @returns {string} Deep link URL
@@ -259,15 +279,8 @@ export function getDeepLinkUrl(origin, destination) {
  * @returns {string} Web URL
  */
 export function getWebUrl(origin, destination) {
-  const originStr = formatLocationForUrl(origin)
-  const destinationStr = formatLocationForUrl(destination)
-
-  const params = new URLSearchParams({
-    saddr: originStr,
-    daddr: destinationStr,
-  })
-
-  return `https://maps.apple.com/?${params}`
+  // Universal Link and Web URL are the same for Apple Maps
+  return getUniversalLink(origin, destination)
 }
 
 /**

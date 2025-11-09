@@ -22,17 +22,54 @@ export async function getRoute(origin, destination) {
 }
 
 /**
+ * Format location for URL (deep link or web link)
+ * @param {string|object} location - Address string or {lat, lng} object
+ * @returns {string} Formatted location string for URL
+ * @private
+ */
+function formatLocationForUrl(location) {
+  // If it's a coordinate object, format as "lat,lng"
+  if (typeof location === 'object' && location.lat && location.lng) {
+    return `${location.lat},${location.lng}`
+  }
+
+  // If it's a string address, return as-is
+  return location
+}
+
+/**
+ * Generate Universal Link for Waze (RECOMMENDED)
+ * Works on all platforms - automatically opens in app on mobile if installed
+ * @param {string|object} origin
+ * @param {string|object} destination
+ * @returns {string} Universal Link URL
+ */
+export function getUniversalLink(origin, destination) {
+  const destinationStr = formatLocationForUrl(destination)
+
+  const params = new URLSearchParams({
+    q: destinationStr,
+    navigate: 'yes',
+  })
+
+  return `https://waze.com/ul?${params}`
+}
+
+/**
  * Generate Waze deep link URL
  * Opens in Waze app on iOS/Android
- * @param {string} origin
- * @param {string} destination
+ * Note: Universal Links are recommended over this
+ * @param {string|object} origin
+ * @param {string|object} destination
  * @returns {string} Deep link URL
  */
 export function getDeepLinkUrl(origin, destination) {
   // Waze uses "navigate" parameter for destination
   // Origin is automatically detected as current location
+  const destinationStr = formatLocationForUrl(destination)
+
   const params = new URLSearchParams({
-    q: destination,
+    q: destinationStr,
     navigate: 'yes',
   })
 
@@ -41,15 +78,11 @@ export function getDeepLinkUrl(origin, destination) {
 
 /**
  * Generate Waze web URL (opens in browser, redirects to app if installed)
- * @param {string} origin
- * @param {string} destination
+ * @param {string|object} origin
+ * @param {string|object} destination
  * @returns {string} Web URL
  */
 export function getWebUrl(origin, destination) {
-  const params = new URLSearchParams({
-    q: destination,
-    navigate: 'yes',
-  })
-
-  return `https://waze.com/ul?${params}`
+  // Universal Link and Web URL are the same for Waze
+  return getUniversalLink(origin, destination)
 }

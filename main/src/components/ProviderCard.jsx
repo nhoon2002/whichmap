@@ -1,8 +1,25 @@
+'use client'
+
 import { Border } from '@/components/Border'
 import { FadeIn } from '@/components/FadeIn'
 import clsx from 'clsx'
+import { openMapLink } from '@/lib/deeplinkHelpers'
 
-export function ProviderCard({ provider, eta, distance, unit = 'min', isFastest = false, deepLink }) {
+export function ProviderCard({ 
+  provider, 
+  eta, 
+  distance, 
+  unit = 'min', 
+  isFastest = false, 
+  link // Single link prop - should be a Universal Link
+}) {
+  const handleOpenMap = (e) => {
+    e.preventDefault()
+    openMapLink(link)
+  }
+
+  const hasLink = Boolean(link)
+
   return (
     <Border
       as={FadeIn}
@@ -28,15 +45,13 @@ export function ProviderCard({ provider, eta, distance, unit = 'min', isFastest 
           {distance}
         </div>
       )}
-      {deepLink && (
-        <a
-          href={deepLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center text-sm font-semibold text-neutral-950 hover:text-neutral-700"
+      {hasLink && (
+        <button
+          onClick={handleOpenMap}
+          className="mt-4 inline-flex items-center text-sm font-semibold text-neutral-950 hover:text-neutral-700 transition-colors"
         >
           Open in {provider} →
-        </a>
+        </button>
       )}
     </Border>
   )

@@ -231,15 +231,57 @@ export async function getRouteVariants(origin, destination) {
 }
 
 /**
- * Generate deep link URL for Google Maps app
- * @param {string} origin
- * @param {string} destination
+ * Format location for URL (deep link or web link)
+ * @param {string|object} location - Address string or {lat, lng} object
+ * @returns {string} Formatted location string for URL
+ * @private
+ */
+function formatLocationForUrl(location) {
+  // If it's a coordinate object, format as "lat,lng"
+  if (typeof location === 'object' && location.lat && location.lng) {
+    return `${location.lat},${location.lng}`
+  }
+
+  // If it's a string address, return as-is
+  return location
+}
+
+/**
+ * Generate Universal Link for Google Maps (RECOMMENDED)
+ * Works on all platforms - desktop opens in browser, mobile opens in app if installed
+ * Based on: https://developers.google.com/maps/documentation/urls/ios-urlscheme
+ * @param {string|object} origin
+ * @param {string|object} destination
+ * @returns {string} Universal Link URL
+ */
+export function getUniversalLink(origin, destination) {
+  const originStr = formatLocationForUrl(origin)
+  const destinationStr = formatLocationForUrl(destination)
+
+  const params = new URLSearchParams({
+    api: '1',
+    origin: originStr,
+    destination: destinationStr,
+    travelmode: 'driving',
+  })
+
+  return `https://www.google.com/maps/dir/?${params}`
+}
+
+/**
+ * Generate deep link URL for Google Maps app (iOS-specific)
+ * Note: Universal Links are recommended over this
+ * @param {string|object} origin
+ * @param {string|object} destination
  * @returns {string} Deep link URL
  */
 export function getDeepLinkUrl(origin, destination) {
+  const originStr = formatLocationForUrl(origin)
+  const destinationStr = formatLocationForUrl(destination)
+
   const params = new URLSearchParams({
-    saddr: origin,
-    daddr: destination,
+    saddr: originStr,
+    daddr: destinationStr,
     directionsmode: 'driving',
   })
 
@@ -248,17 +290,11 @@ export function getDeepLinkUrl(origin, destination) {
 
 /**
  * Generate web URL for Google Maps
- * @param {string} origin
- * @param {string} destination
+ * @param {string|object} origin
+ * @param {string|object} destination
  * @returns {string} Web URL
  */
 export function getWebUrl(origin, destination) {
-  const params = new URLSearchParams({
-    api: '1',
-    origin,
-    destination,
-    travelmode: 'driving',
-  })
-
-  return `https://www.google.com/maps/dir/?${params}`
+  // Universal Link and Web URL are the same for Google Maps
+  return getUniversalLink(origin, destination)
 }

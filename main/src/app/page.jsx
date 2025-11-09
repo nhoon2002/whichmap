@@ -170,7 +170,7 @@ export default function Home() {
                     distance={result.distance}
                     unit={result.unit}
                     isFastest={fastest && result.id === fastest.id}
-                    deepLink={result.webLink || result.deepLink || generateDeepLink(result.id, startLocation, endLocation)}
+                    link={result.link || generateDeepLink(result.id, startLocation, endLocation)}
                   />
                 ))}
               </dl>
