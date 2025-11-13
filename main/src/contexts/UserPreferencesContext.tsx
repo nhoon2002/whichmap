@@ -1,23 +1,37 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { onAuthChange } from '@/services/auth/authService'
 import { User } from '@/models/User'
+import type { UserPreferences } from '@/types'
+import type { User as FirebaseUser } from 'firebase/auth'
 
-const UserPreferencesContext = createContext(null)
+interface UserPreferencesContextValue {
+  preferences: UserPreferences
+  updatePreferences: (newPreferences: UserPreferences) => Promise<void>
+  toggleNavService: (service: keyof UserPreferences['navServices']) => Promise<void>
+  loading: boolean
+  isLoggedIn: boolean
+}
+
+const UserPreferencesContext = createContext<UserPreferencesContextValue | null>(null)
+
+interface UserPreferencesProviderProps {
+  children: ReactNode
+}
 
 /**
  * Provider for user preferences
  * Manages a single shared state across all components
  */
-export function UserPreferencesProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [userModel, setUserModel] = useState(null)
-  const [preferences, setPreferences] = useState(() => ({
+export function UserPreferencesProvider({ children }: UserPreferencesProviderProps) {
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null)
+  const [userModel, setUserModel] = useState<User | null>(null)
+  const [preferences, setPreferences] = useState<UserPreferences>(() => ({
     navServices: {
       google: true,
       apple: true,
-      waze: false, // Waze not yet implemented
+      waze: false, // Waze Transport SDK pending approval
     },
   }))
   const [loading, setLoading] = useState(true)
@@ -40,9 +54,11 @@ export function UserPreferencesProvider({ children }) {
       }
 
       try {
-        const user = await User.findOrCreate(currentUser.uid, {
-          email: currentUser.email,
-        })
+        // Find or create user
+        let user = await User.find(currentUser.uid)
+        if (!user) {
+          user = await User.create(currentUser.uid, currentUser.email)
+        }
 
         setUserModel(user)
         setPreferences(user.preferences)
@@ -56,7 +72,7 @@ export function UserPreferencesProvider({ children }) {
     loadUserModel()
   }, [currentUser])
 
-  const updatePreferences = async (newPreferences) => {
+  const updatePreferences = async (newPreferences: UserPreferences): Promise<void> => {
     setPreferences(newPreferences)
 
     if (!userModel) {
@@ -72,20 +88,19 @@ export function UserPreferencesProvider({ children }) {
     }
   }
 
-  const toggleNavService = async (service) => {
-    const newPreferences = {
+  const toggleNavService = async (service: keyof UserPreferences['navServices']): Promise<void> => {
+    const newPreferences: UserPreferences = {
       ...preferences,
       navServices: {
         ...preferences.navServices,
         [service]: !preferences.navServices[service],
       },
-      _updated: Date.now(),
     }
 
     await updatePreferences(newPreferences)
   }
 
-  const value = {
+  const value: UserPreferencesContextValue = {
     preferences,
     updatePreferences,
     toggleNavService,
@@ -103,7 +118,7 @@ export function UserPreferencesProvider({ children }) {
 /**
  * Hook to use preferences from context
  */
-export function useUserPreferences() {
+export function useUserPreferences(): UserPreferencesContextValue {
   const context = useContext(UserPreferencesContext)
   if (!context) {
     throw new Error('useUserPreferences must be used within UserPreferencesProvider')

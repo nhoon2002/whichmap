@@ -27,6 +27,7 @@ export interface Place {
   address: string
   coordinates: Coordinates
   placeId?: string
+  isCurrentLocation?: boolean
 }
 
 // ============================================
@@ -195,13 +196,18 @@ export interface GeocodeResult {
 }
 
 /**
- * Autocomplete prediction
+ * Autocomplete prediction (matches Google Places API response)
  */
 export interface AutocompletePrediction {
   description: string
-  placeId: string
-  mainText: string
-  secondaryText: string
+  place_id: string  // Google API uses snake_case
+  placeId?: string  // Optional camelCase alias
+  structured_formatting?: {
+    main_text: string
+    secondary_text: string
+  }
+  mainText?: string
+  secondaryText?: string
 }
 
 // ============================================
@@ -254,15 +260,17 @@ export interface ProviderCardProps {
  */
 export interface AutocompleteInputProps {
   label: string
+  placeholder?: string
   value: string
   onChange: (value: string) => void
   onSelect: (place: Place) => void
   onClear?: () => void
-  onUseCurrentLocation?: () => void
+  onUseCurrentLocation?: (coords?: Coordinates) => void
   showLocationButton?: boolean
   showClearButton?: boolean
   className?: string
   autoComplete?: string
+  [key: string]: any  // Allow additional props
 }
 
 /**

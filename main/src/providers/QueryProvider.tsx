@@ -1,14 +1,18 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+
+interface QueryProviderProps {
+  children: ReactNode
+}
 
 /**
  * React Query provider for API data caching and state management
  * Used for external APIs (Google Maps, Waze, Yelp, etc.)
  * NOT used for Firebase - Firebase has its own real-time system
  */
-export function QueryProvider({ children }) {
+export function QueryProvider({ children }: QueryProviderProps) {
   // Create QueryClient inside component to avoid sharing between requests
   const [queryClient] = useState(
     () =>
