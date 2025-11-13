@@ -1,9 +1,8 @@
-import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
+import { getAuth, type Auth } from 'firebase/auth'
+import { getFirestore, type Firestore } from 'firebase/firestore'
 
-// Your web app's Firebase configuration
-// TODO: Replace with your actual Firebase config values
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,10 +14,10 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase (only if not already initialized)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
 // Initialize Firebase services
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+export const auth: Auth = getAuth(app)
+export const db: Firestore = getFirestore(app)
 
 export default app

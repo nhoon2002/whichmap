@@ -7,14 +7,14 @@
  * Call this once in your root component
  * Note: Only attaches helpers in development mode
  */
-export function initGlobalHelpers() {
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && !window.log) {
-    window.log = log
-    window.logger = logger
-    window.logTime = logTime
-    window.devLog = devLog
-    window.logObject = logObject
-    window.logTrace = logTrace
+export function initGlobalHelpers(): void {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && !(window as any).log) {
+    (window as any).log = log;
+    (window as any).logger = logger;
+    (window as any).logTime = logTime;
+    (window as any).devLog = devLog;
+    (window as any).logObject = logObject;
+    (window as any).logTrace = logTrace
 
     // Confirmation in dev mode
     console.log('%c✓ Global helpers loaded', 'color: green; font-weight: bold;')
@@ -27,15 +27,8 @@ export function initGlobalHelpers() {
 
 /**
  * Console log with color styling
- * @param {*} something - The content to log (can be any type)
- * @param {string} color - CSS color value (e.g., 'red', '#ff0000', 'rgb(255,0,0)')
- *
- * @example
- * log('Hello World', 'blue')
- * log({ user: 'John' }, 'green')
- * log('Error message', '#ff0000')
  */
-export function log(something, color = 'black') {
+export function log(something: any, color: string = 'black'): void {
   // Check if we're in the browser
   if (typeof window !== 'undefined') {
     // Use console.log with CSS styling
@@ -51,29 +44,25 @@ export function log(something, color = 'black') {
  * Colors optimized for dark mode consoles
  */
 export const logger = {
-  info: (msg) => log(msg, '#6CB4EE'),      // Light blue
-  success: (msg) => log(msg, '#7FFF00'),   // Chartreuse green
-  warning: (msg) => log(msg, '#FFA500'),   // Orange
-  error: (msg) => log(msg, '#FF6B6B'),     // Light red/coral
-  debug: (msg) => log(msg, '#DA70D6'),     // Orchid purple
+  info: (msg: any) => log(msg, '#6CB4EE'),      // Light blue
+  success: (msg: any) => log(msg, '#7FFF00'),   // Chartreuse green
+  warning: (msg: any) => log(msg, '#FFA500'),   // Orange
+  error: (msg: any) => log(msg, '#FF6B6B'),     // Light red/coral
+  debug: (msg: any) => log(msg, '#DA70D6'),     // Orchid purple
 }
 
 /**
  * Log with timestamp
- * @param {*} something - The content to log
- * @param {string} color - CSS color value
  */
-export function logTime(something, color = 'black') {
+export function logTime(something: any, color: string = 'black'): void {
   const timestamp = new Date().toLocaleTimeString()
   log(`[${timestamp}] ${JSON.stringify(something)}`, color)
 }
 
 /**
  * Log only in development mode
- * @param {*} something - The content to log
- * @param {string} color - CSS color value
  */
-export function devLog(something, color = 'blue') {
+export function devLog(something: any, color: string = 'blue'): void {
   if (process.env.NODE_ENV === 'development') {
     log(something, color)
   }
@@ -81,10 +70,8 @@ export function devLog(something, color = 'blue') {
 
 /**
  * Pretty print objects with color
- * @param {Object} obj - Object to pretty print
- * @param {string} color - CSS color value
  */
-export function logObject(obj, color = 'teal') {
+export function logObject(obj: any, color: string = 'teal'): void {
   if (typeof window !== 'undefined') {
     console.log(`%c${JSON.stringify(obj, null, 2)}`, `color: ${color}; font-family: monospace;`)
   } else {
@@ -94,11 +81,8 @@ export function logObject(obj, color = 'teal') {
 
 /**
  * Log function entry/exit for debugging
- * @param {string} functionName - Name of the function
- * @param {string} action - 'enter' or 'exit'
- * @param {*} data - Optional data to log
  */
-export function logTrace(functionName, action = 'enter', data = null) {
+export function logTrace(functionName: string, action: 'enter' | 'exit' = 'enter', data: any = null): void {
   const color = action === 'enter' ? 'green' : 'red'
   const symbol = action === 'enter' ? '→' : '←'
   const message = data

@@ -21,7 +21,7 @@ import { User } from '@/models/User'
  * @param {string} password
  * @returns {Promise<object>} User credential
  */
-export async function signInWithEmail(email, password) {
+export async function signInWithEmail(email: string, password: string) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
   return userCredential
 }
@@ -33,13 +33,11 @@ export async function signInWithEmail(email, password) {
  * @param {string} password
  * @returns {Promise<object>} User credential
  */
-export async function signUpWithEmail(email, password) {
+export async function signUpWithEmail(email: string, password: string) {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password)
 
   // Create user document in Firestore
-  await User.create(userCredential.user.uid, {
-    email: userCredential.user.email,
-  })
+  await User.create(userCredential.user.uid, userCredential.user.email)
 
   return userCredential
 }
@@ -54,9 +52,10 @@ export async function signInWithGoogle() {
   const userCredential = await signInWithPopup(auth, provider)
 
   // Create user document if doesn't exist
-  await User.findOrCreate(userCredential.user.uid, {
-    email: userCredential.user.email,
-  })
+  const existingUser = await User.find(userCredential.user.uid)
+  if (!existingUser) {
+    await User.create(userCredential.user.uid, userCredential.user.email)
+  }
 
   return userCredential
 }
@@ -65,7 +64,7 @@ export async function signInWithGoogle() {
  * Sign out current user
  * @returns {Promise<void>}
  */
-export async function signOut() {
+export async function signOut(): Promise<void> {
   await firebaseSignOut(auth)
 }
 

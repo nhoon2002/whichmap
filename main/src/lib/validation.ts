@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod'
+import type { ValidationResult } from '@/types'
 
 /**
  * Address validation schema
@@ -53,11 +54,14 @@ export const routeComparisonSchema = z.object({
 })
 
 /**
- * Validate route comparison input
- * @param {object} data - Request data to validate
- * @returns {object} { success: boolean, data?: object, error?: string }
+ * Infer TypeScript type from Zod schema
  */
-export function validateRouteComparison(data) {
+export type RouteComparisonInput = z.infer<typeof routeComparisonSchema>
+
+/**
+ * Validate route comparison input
+ */
+export function validateRouteComparison(data: unknown): ValidationResult<RouteComparisonInput> {
   try {
     const validated = routeComparisonSchema.parse(data)
     return { success: true, data: validated }
@@ -79,14 +83,11 @@ export function validateRouteComparison(data) {
 /**
  * Sanitize address string
  * Additional layer of protection
- * @param {string} address
- * @returns {string}
  */
-export function sanitizeAddress(address) {
+export function sanitizeAddress(address: string): string {
   return address
     .trim()
     .replace(/[<>]/g, '') // Remove potential HTML
     .replace(/[;'"]/g, '') // Remove potential SQL/command injection chars
     .substring(0, 200) // Hard limit
 }
-
