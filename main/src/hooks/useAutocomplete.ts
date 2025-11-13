@@ -5,22 +5,52 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getAutocompletePredictions, getPlaceDetails } from '@/services/geocoding/autocompleteService'
+import type { AutocompletePrediction, Place } from '@/types'
+
+/**
+ * Autocomplete hook options
+ */
+interface UseAutocompleteOptions {
+  debounceMs?: number
+  minChars?: number
+}
+
+/**
+ * Extended place with prediction info
+ */
+interface SelectedPlace extends Place {
+  description: string
+  placeId: string
+}
+
+/**
+ * Return type for useAutocomplete hook
+ */
+interface UseAutocompleteReturn {
+  input: string
+  predictions: AutocompletePrediction[]
+  isLoading: boolean
+  selectedPlace: SelectedPlace | null
+  showDropdown: boolean
+  handleInputChange: (value: string) => void
+  handleSelect: (prediction: any) => Promise<Place>
+  setShowDropdown: (show: boolean) => void
+  clear: () => void
+}
 
 /**
  * Hook for address autocomplete functionality
- * @param {object} options - Configuration options
- * @returns {object} Autocomplete state and handlers
  */
-export function useAutocomplete(options = {}) {
+export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutocompleteReturn {
   const { debounceMs = 300, minChars = 2 } = options
 
   const [input, setInput] = useState('')
-  const [predictions, setPredictions] = useState([])
+  const [predictions, setPredictions] = useState<AutocompletePrediction[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
 
-  const debounceTimer = useRef(null)
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
   const justSelected = useRef(false) // Flag to prevent autocomplete after selection
 
   // Fetch predictions when input changes (with debounce)
@@ -69,13 +99,13 @@ export function useAutocomplete(options = {}) {
   }, [input, debounceMs, minChars])
 
   // Handle input change
-  const handleInputChange = useCallback((value) => {
+  const handleInputChange = useCallback((value: string) => {
     setInput(value)
     setSelectedPlace(null) // Clear selection when user types
   }, [])
 
   // Handle prediction selection
-  const handleSelect = useCallback(async (prediction) => {
+  const handleSelect = useCallback(async (prediction: any): Promise<Place> => {
     try {
       setIsLoading(true)
       const placeDetails = await getPlaceDetails(prediction.place_id)

@@ -2,7 +2,6 @@
  * Google Maps Service
  * Abstracts Google Maps Routes API operations (v2)
  * Uses the official @googlemaps/routing SDK
- * Makes it easier to swap map providers later
  *
  * PERFORMANCE NOTE: Routes API v2 is slower than legacy Directions API
  * - Legacy API: ~500ms response time
@@ -11,6 +10,7 @@
  */
 
 import { RoutesClient } from '@googlemaps/routing'
+import type { Location, ProviderRouteResponse, RouteOptions, RawRouteData, RouteStep } from '@/types'
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY
 
@@ -20,15 +20,30 @@ const routesClient = new RoutesClient({
 })
 
 /**
+ * Google Maps Routes API location format
+ */
+interface GoogleMapsLocation {
+  location?: {
+    latLng: {
+      latitude: number
+      longitude: number
+    }
+  }
+  address?: string
+}
+
+/**
+ * Duration format (protobuf)
+ */
+type Duration = string | { seconds: string | number }
+
+/**
  * Format location for Google Maps Routes API
  * Accepts either address string or coordinate object
- * @param {string|object} location - Address string or {lat, lng} object
- * @returns {object} Formatted location for Google Maps API
- * @private
  */
-function formatLocation(location) {
+function formatLocation(location: Location): GoogleMapsLocation {
   // If it's a coordinate object, format for Google Maps
-  if (typeof location === 'object' && location.lat && location.lng) {
+  if (typeof location === 'object' && 'lat' in location && 'lng' in location) {
     return {
       location: {
         latLng: {
@@ -51,12 +66,12 @@ function formatLocation(location) {
 
 /**
  * Get route from Google Maps Routes API (v2)
- * @param {string|object} origin - Starting location (address string or {lat, lng} object)
- * @param {string|object} destination - Ending location (address string or {lat, lng} object)
- * @param {object} options - Additional options (avoid, travel_mode, etc.)
- * @returns {Promise<object>} Normalized route object
  */
-export async function getRoute(origin, destination, options = {}) {
+export async function getRoute(
+  origin: Location,
+  destination: Location,
+  options: RouteOptions = {}
+): Promise<ProviderRouteResponse> {
   if (!GOOGLE_MAPS_API_KEY) {
     throw new Error('Google Maps API key is not configured')
   }
@@ -66,8 +81,8 @@ export async function getRoute(origin, destination, options = {}) {
     const request = {
       origin: formatLocation(origin),
       destination: formatLocation(destination),
-      travelMode: 'DRIVE',
-      routingPreference: 'TRAFFIC_AWARE_OPTIMAL', // Use traffic data for best ETA
+      travelMode: 'DRIVE' as const,
+      routingPreference: 'TRAFFIC_AWARE_OPTIMAL' as const, // Use traffic data for best ETA
       computeAlternativeRoutes: true, // Get multiple route options
       routeModifiers: {
         avoidTolls: options.avoid === 'tolls',
@@ -75,11 +90,11 @@ export async function getRoute(origin, destination, options = {}) {
         avoidFerries: false,
       },
       languageCode: 'en-US',
-      units: 'IMPERIAL',
+      units: 'IMPERIAL' as const,
     }
 
     // Call Routes API
-    const [response] = await routesClient.computeRoutes(request, {
+    const [response] = await routesClient.computeRoutes(request as any, {
       otherArgs: {
         headers: {
           'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs,routes.description,routes.warnings,routes.localizedValues',
@@ -101,11 +116,9 @@ export async function getRoute(origin, destination, options = {}) {
 
 /**
  * Normalize Routes API (v2) response to our standard format
- * @param {object} routesResponse - Raw Routes API response
- * @returns {object} Normalized route data
  */
-function normalizeRoutesApiResponse(routesResponse) {
-  const routes = routesResponse.routes.map((route, index) => {
+function normalizeRoutesApiResponse(routesResponse: any): ProviderRouteResponse {
+  const routes: RawRouteData[] = routesResponse.routes.map((route: any, index: number) => {
     const leg = route.legs?.[0] // First leg of the route
 
     // Convert duration from protobuf Duration format (e.g., "123s") to seconds
@@ -115,7 +128,6 @@ function normalizeRoutesApiResponse(routesResponse) {
     return {
       // Route identification
       provider: 'google',
-      routeIndex: index,
       summary: route.description || `Route ${index + 1}`,
 
       // Duration (seconds)
@@ -136,10 +148,9 @@ function normalizeRoutesApiResponse(routesResponse) {
 
       // Warnings and additional info
       warnings: route.warnings || [],
-      copyrights: 'Map data ©2024 Google',
 
       // Steps (if legs data is available)
-      steps: leg?.steps?.map(step => ({
+      steps: leg?.steps?.map((step: any): RouteStep => ({
         instruction: step.navigationInstruction?.instructions || '',
         distance: formatDistance(step.distanceMeters || 0),
         duration: formatDuration(parseDuration(step.staticDuration)),
@@ -159,18 +170,16 @@ function normalizeRoutesApiResponse(routesResponse) {
 
 /**
  * Parse protobuf Duration format (e.g., "123s") to seconds
- * @param {string|object} duration - Duration in protobuf format
- * @returns {number} Duration in seconds
  */
-function parseDuration(duration) {
+function parseDuration(duration: Duration | undefined): number {
   if (!duration) return 0
 
   if (typeof duration === 'string') {
     return parseInt(duration.replace('s', ''), 10) || 0
   }
 
-  if (typeof duration === 'object' && duration.seconds) {
-    return parseInt(duration.seconds, 10) || 0
+  if (typeof duration === 'object' && 'seconds' in duration) {
+    return parseInt(String(duration.seconds), 10) || 0
   }
 
   return 0
@@ -178,10 +187,8 @@ function parseDuration(duration) {
 
 /**
  * Format duration in seconds to human-readable text
- * @param {number} seconds
- * @returns {string}
  */
-function formatDuration(seconds) {
+function formatDuration(seconds: number): string {
   if (!seconds) return '0 min'
 
   const hours = Math.floor(seconds / 3600)
@@ -195,10 +202,8 @@ function formatDuration(seconds) {
 
 /**
  * Format distance in meters to human-readable text
- * @param {number} meters
- * @returns {string}
  */
-function formatDistance(meters) {
+function formatDistance(meters: number): string {
   if (!meters) return '0 mi'
 
   const miles = (meters * 0.000621371).toFixed(1)
@@ -207,11 +212,8 @@ function formatDistance(meters) {
 
 /**
  * Get multiple routes with different options (e.g., avoid highways, tolls)
- * @param {string} origin
- * @param {string} destination
- * @returns {Promise<object>} Routes with different options
  */
-export async function getRouteVariants(origin, destination) {
+export async function getRouteVariants(origin: Location, destination: Location) {
   const variants = await Promise.allSettled([
     // Default route
     getRoute(origin, destination),
@@ -232,13 +234,10 @@ export async function getRouteVariants(origin, destination) {
 
 /**
  * Format location for URL (deep link or web link)
- * @param {string|object} location - Address string or {lat, lng} object
- * @returns {string} Formatted location string for URL
- * @private
  */
-function formatLocationForUrl(location) {
+function formatLocationForUrl(location: Location): string {
   // If it's a coordinate object, format as "lat,lng"
-  if (typeof location === 'object' && location.lat && location.lng) {
+  if (typeof location === 'object' && 'lat' in location && 'lng' in location) {
     return `${location.lat},${location.lng}`
   }
 
@@ -249,12 +248,8 @@ function formatLocationForUrl(location) {
 /**
  * Generate Universal Link for Google Maps (RECOMMENDED)
  * Works on all platforms - desktop opens in browser, mobile opens in app if installed
- * Based on: https://developers.google.com/maps/documentation/urls/ios-urlscheme
- * @param {string|object} origin
- * @param {string|object} destination
- * @returns {string} Universal Link URL
  */
-export function getUniversalLink(origin, destination) {
+export function getUniversalLink(origin: Location, destination: Location): string {
   const originStr = formatLocationForUrl(origin)
   const destinationStr = formatLocationForUrl(destination)
 
@@ -271,11 +266,8 @@ export function getUniversalLink(origin, destination) {
 /**
  * Generate deep link URL for Google Maps app (iOS-specific)
  * Note: Universal Links are recommended over this
- * @param {string|object} origin
- * @param {string|object} destination
- * @returns {string} Deep link URL
  */
-export function getDeepLinkUrl(origin, destination) {
+export function getDeepLinkUrl(origin: Location, destination: Location): string {
   const originStr = formatLocationForUrl(origin)
   const destinationStr = formatLocationForUrl(destination)
 
@@ -290,11 +282,8 @@ export function getDeepLinkUrl(origin, destination) {
 
 /**
  * Generate web URL for Google Maps
- * @param {string|object} origin
- * @param {string|object} destination
- * @returns {string} Web URL
  */
-export function getWebUrl(origin, destination) {
+export function getWebUrl(origin: Location, destination: Location): string {
   // Universal Link and Web URL are the same for Google Maps
   return getUniversalLink(origin, destination)
 }

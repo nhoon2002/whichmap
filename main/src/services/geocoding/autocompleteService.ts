@@ -3,12 +3,12 @@
  * Provides address suggestions as user types
  */
 
+import type { AutocompletePrediction, Place } from '@/types'
+
 /**
  * Get autocomplete predictions for an input string
- * @param {string} input - User's input text
- * @returns {Promise<array>} Array of predictions
  */
-export async function getAutocompletePredictions(input) {
+export async function getAutocompletePredictions(input: string): Promise<AutocompletePrediction[]> {
   if (!input || input.length < 2) {
     return []
   }
@@ -31,10 +31,8 @@ export async function getAutocompletePredictions(input) {
 
 /**
  * Get place details (coordinates) for a selected place
- * @param {string} placeId - Google Place ID
- * @returns {Promise<object>} Place details with coordinates
  */
-export async function getPlaceDetails(placeId) {
+export async function getPlaceDetails(placeId: string): Promise<Place> {
   if (!placeId) {
     throw new Error('placeId required')
   }
@@ -53,7 +51,7 @@ export async function getPlaceDetails(placeId) {
       throw new Error(error.error || 'Failed to get place details')
     }
 
-    const data = await response.json()
+    const data: Place = await response.json()
     return data
   } catch (error) {
     console.error('Place details error:', error)

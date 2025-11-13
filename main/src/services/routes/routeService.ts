@@ -1,50 +1,56 @@
 /**
  * Route Service - Orchestrator
  * Coordinates multiple map providers and returns unified results
- * Respects user preferences for which services to use
  * Handles geocoding when addresses are provided instead of coordinates
+ * Preferences are applied client-side only (no server-side filtering)
  */
 
 import * as googleMapsService from './providers/googleMapsService'
 import * as appleMapsService from './providers/appleMapsService'
 import * as wazeService from './providers/wazeService'
 import { geocodeAddress } from '../geocoding/geocodingService'
+import type {
+  Location,
+  Coordinates,
+  ProviderConfig,
+  ProviderService,
+  RawRouteData,
+  UserPreferences,
+  ProviderId,
+} from '@/types'
 
 /**
  * Provider registry
  * Maps provider ID to its service module and metadata
  */
-const PROVIDERS = {
+const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   google: {
     id: 'google',
     name: 'Google Maps',
-    service: googleMapsService,
+    service: googleMapsService as ProviderService,
     hasAPI: true, // Has full route API
   },
   apple: {
     id: 'apple',
     name: 'Apple Maps',
-    service: appleMapsService,
+    service: appleMapsService as ProviderService,
     hasAPI: true, // Full route API available
   },
   waze: {
     id: 'waze',
     name: 'Waze',
-    service: wazeService,
-    hasAPI: false, // Deep links only
+    service: wazeService as ProviderService,
+    hasAPI: false, // Universal links only (Transport SDK pending approval)
   },
 }
 
 /**
  * Normalize location to coordinates
  * Accepts either coordinates object or address string (geocodes if needed)
- * @param {string|object} location - Address string or {lat, lng} object
- * @returns {Promise<object>} {lat, lng} coordinates
- * @private
  */
-async function normalizeLocation(location) {
+async function normalizeLocation(location: Location): Promise<Coordinates> {
   // If already coordinates, return as-is
-  if (typeof location === 'object' && location.lat && location.lng) {
+  if (typeof location === 'object' && 'lat' in location && 'lng' in location) {
     return location
   }
 
@@ -59,12 +65,13 @@ async function normalizeLocation(location) {
 
 /**
  * Compare routes across multiple providers
- * @param {string|object} origin - Starting location (address string or {lat, lng} object)
- * @param {string|object} destination - Ending location (address string or {lat, lng} object)
- * @param {object} preferences - DEPRECATED - User preferences are now applied client-side only
- * @returns {Promise<Array>} Array of route comparisons
+ * NOTE: Preferences parameter is DEPRECATED - preferences are applied client-side only
  */
-export async function compareRoutes(origin, destination, preferences = {}) {
+export async function compareRoutes(
+  origin: Location,
+  destination: Location,
+  preferences?: UserPreferences
+): Promise<RawRouteData[]> {
   // Geocode addresses to coordinates if needed
   // This is required for Apple Maps ETA API which only accepts coordinates
   const originCoords = await normalizeLocation(origin)
@@ -75,7 +82,7 @@ export async function compareRoutes(origin, destination, preferences = {}) {
   // User preferences are applied client-side to filter results
   // This prevents unnecessary API refetches when user toggles preferences
   const requests = Object.entries(PROVIDERS)
-    .filter(([providerId, providerConfig]) => {
+    .filter(([_, providerConfig]) => {
       // Only check if provider has API implementation
       // Do NOT check user preferences here
       return providerConfig.hasAPI === true
@@ -83,7 +90,7 @@ export async function compareRoutes(origin, destination, preferences = {}) {
     .map(([providerId, providerConfig]) =>
       // Use coordinates for all providers (geocoded if needed)
       fetchRouteFromProvider(providerConfig, originCoords, destinationCoords).catch(error => ({
-        provider: providerId,
+        provider: providerId as ProviderId,
         error: error.message,
         routes: [],
       }))
@@ -100,17 +107,25 @@ export async function compareRoutes(origin, destination, preferences = {}) {
 }
 
 /**
- * Generic function to fetch routes from any provider
- * @param {object} providerConfig - Provider configuration from PROVIDERS registry
- * @param {string} origin - Starting location
- * @param {string} destination - Ending location
- * @returns {Promise<object>} Provider routes
- * @private
+ * Provider fetch result
  */
-async function fetchRouteFromProvider(providerConfig, origin, destination) {
-  const { id, service, hasAPI } = providerConfig
+interface ProviderFetchResult {
+  provider: ProviderId
+  routes: RawRouteData[]
+  error?: string
+}
 
-  // Provider has full API support (e.g., Google Maps)
+/**
+ * Generic function to fetch routes from any provider
+ */
+async function fetchRouteFromProvider(
+  providerConfig: ProviderConfig,
+  origin: Coordinates,
+  destination: Coordinates
+): Promise<ProviderFetchResult> {
+  const { id, service, hasAPI, name } = providerConfig
+
+  // Provider has full API support (e.g., Google Maps, Apple Maps)
   if (hasAPI && service.getRoute) {
     const data = await service.getRoute(origin, destination)
 
@@ -120,30 +135,32 @@ async function fetchRouteFromProvider(providerConfig, origin, destination) {
         ...route,
         // Use Universal Link (recommended) - works on all platforms
         link: service.getUniversalLink?.(origin, destination) || service.getWebUrl?.(origin, destination),
-      })),
+      })) as RawRouteData[],
     }
   }
 
-  // Provider only has deep links (e.g., Apple Maps, Waze)
+  // Provider only has deep links (e.g., Waze with Transport SDK pending)
   return {
     provider: id,
     routes: [{
       provider: id,
+      duration: 0,
+      distance: 0,
       // Use Universal Link (recommended) - works on all platforms
       link: service.getUniversalLink?.(origin, destination) || service.getWebUrl?.(origin, destination),
-      message: `Open in ${providerConfig.name} app to view route`,
-    }],
+      message: `Open in ${name} app to view route`,
+    }] as RawRouteData[],
   }
 }
 
 /**
  * Get the fastest route across all providers
- * @param {string} origin
- * @param {string} destination
- * @param {object} preferences
- * @returns {Promise<object>} Fastest route with provider info
  */
-export async function getFastestRoute(origin, destination, preferences) {
+export async function getFastestRoute(
+  origin: Location,
+  destination: Location,
+  preferences?: UserPreferences
+): Promise<RawRouteData | null> {
   const routes = await compareRoutes(origin, destination, preferences)
 
   if (routes.length === 0) {

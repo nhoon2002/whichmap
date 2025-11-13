@@ -4,12 +4,12 @@
  * Documentation: https://developers.google.com/maps/documentation/geocoding
  */
 
+import type { GeocodeResult } from '@/types'
+
 /**
  * Geocode an address to coordinates
- * @param {string} address - Address string to geocode
- * @returns {Promise<object>} Geocoded location with coordinates
  */
-export async function geocodeAddress(address) {
+export async function geocodeAddress(address: string): Promise<GeocodeResult> {
   if (!address || typeof address !== 'string') {
     throw new Error('Valid address string required')
   }
@@ -29,20 +29,18 @@ export async function geocodeAddress(address) {
       throw new Error(error.error || 'Geocoding failed')
     }
 
-    const data = await response.json()
+    const data: GeocodeResult = await response.json()
     return data
   } catch (error) {
-    console.error('Geocoding error:', error.message)
+    console.error('Geocoding error:', error instanceof Error ? error.message : error)
     throw error
   }
 }
 
 /**
  * Geocode multiple addresses in parallel
- * @param {string[]} addresses - Array of address strings
- * @returns {Promise<object[]>} Array of geocoded locations
  */
-export async function geocodeMultiple(addresses) {
+export async function geocodeMultiple(addresses: string[]): Promise<(GeocodeResult | null)[]> {
   const results = await Promise.allSettled(
     addresses.map(address => geocodeAddress(address))
   )
@@ -59,11 +57,8 @@ export async function geocodeMultiple(addresses) {
 
 /**
  * Reverse geocode coordinates to address
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @returns {Promise<object>} Reverse geocoded address
  */
-export async function reverseGeocode(lat, lng) {
+export async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
   if (typeof lat !== 'number' || typeof lng !== 'number') {
     throw new Error('Valid latitude and longitude required')
   }
@@ -82,10 +77,10 @@ export async function reverseGeocode(lat, lng) {
       throw new Error(error.error || 'Reverse geocoding failed')
     }
 
-    const data = await response.json()
+    const data: GeocodeResult = await response.json()
     return data
   } catch (error) {
-    console.error('Reverse geocoding error:', error.message)
+    console.error('Reverse geocoding error:', error instanceof Error ? error.message : error)
     throw error
   }
 }

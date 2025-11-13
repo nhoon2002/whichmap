@@ -16,7 +16,9 @@ export function AutocompleteInput({
   onChange,
   onSelect,
   onUseCurrentLocation,
+  onClear,
   showLocationButton = true,
+  showClearButton = true,
   className = '',
   ...props
 }) {
@@ -88,6 +90,20 @@ export function AutocompleteInput({
     if (e.key === 'Escape') {
       setShowDropdown(false)
     }
+  }
+
+  // Handle clear button click
+  const handleClear = () => {
+    handleInputChange('')
+    onChange?.('')
+    setShowDropdown(false)
+    setLocationError(null)
+    
+    // Notify parent that input was cleared
+    onClear?.()
+    
+    // Focus back on input
+    inputRef.current?.focus()
   }
 
   // Handle "Use Current Location" button click
@@ -168,7 +184,7 @@ export function AutocompleteInput({
             text-base/6 text-neutral-950 ring-4 ring-transparent
             transition focus:border-neutral-950 focus:outline-none
             focus:ring-neutral-950/5
-            ${showLocationButton ? 'pl-6 pr-12' : 'px-6'}
+            ${showLocationButton ? 'pl-6 pr-24' : 'px-6'}
             ${className}
           `}
           {...props}
@@ -178,6 +194,31 @@ export function AutocompleteInput({
         >
           {label}
         </label>
+
+        {/* Clear Button (X) - Shows when there's text */}
+        {showClearButton && input && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-12 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:ring-offset-2"
+            title="Clear input"
+            aria-label="Clear input"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
 
         {/* Current Location Button */}
         {showLocationButton && (
