@@ -57,9 +57,10 @@ export function generateAppleMapsToken() {
     )
 
     return token
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('JWT generation error:', error)
-    throw new Error(`Failed to generate Apple Maps JWT token: ${error.message}`)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    throw new Error(`Failed to generate Apple Maps JWT token: ${message}`)
   }
 }
 
@@ -67,7 +68,7 @@ export function generateAppleMapsToken() {
  * Token cache to avoid regenerating JWT on every request
  * Tokens are valid for 1 hour, we cache for 55 minutes to be safe
  */
-let cachedToken = null
+let cachedToken: string | null = null
 let tokenExpiry = 0
 
 /**
@@ -102,7 +103,7 @@ export function clearTokenCache() {
  * Access token cache (separate from JWT cache)
  * Access tokens are exchanged from JWT and valid for 30 minutes
  */
-let cachedAccessToken = null
+let cachedAccessToken: string | null = null
 let accessTokenExpiry = 0
 
 /**

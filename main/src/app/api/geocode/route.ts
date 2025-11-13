@@ -4,9 +4,40 @@
  * Keeps API key server-side for security
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request) {
+interface AddressComponent {
+  long_name: string
+  short_name: string
+  types: string[]
+}
+
+interface GeocodeGeometry {
+  location: {
+    lat: number
+    lng: number
+  }
+  viewport: {
+    northeast: { lat: number; lng: number }
+    southwest: { lat: number; lng: number }
+  }
+}
+
+interface GeocodeResult {
+  formatted_address: string
+  geometry: GeocodeGeometry
+  place_id: string
+  types: string[]
+  address_components: AddressComponent[]
+}
+
+interface GoogleGeocodeResponse {
+  results: GeocodeResult[]
+  status: string
+  error_message?: string
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { address, lat, lng } = body
@@ -20,7 +51,7 @@ export async function POST(request) {
       )
     }
 
-    let geocodeUrl
+    let geocodeUrl: string
 
     // Forward geocoding (address → coordinates)
     if (address) {
@@ -46,7 +77,7 @@ export async function POST(request) {
 
     // Call Google Geocoding API
     const response = await fetch(geocodeUrl)
-    const data = await response.json()
+    const data = await response.json() as GoogleGeocodeResponse
 
     if (data.status !== 'OK') {
       console.error('Google Geocoding API error:', data.status, data.error_message)
@@ -64,6 +95,13 @@ export async function POST(request) {
     }
 
     const result = data.results[0]
+
+    if (!result) {
+      return NextResponse.json(
+        { error: 'No results found' },
+        { status: 404 }
+      )
+    }
 
     // Return normalized response
     return NextResponse.json({
@@ -85,3 +123,4 @@ export async function POST(request) {
     )
   }
 }
+

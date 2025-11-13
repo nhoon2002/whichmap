@@ -11,6 +11,15 @@
 
 import { RoutesClient } from '@googlemaps/routing'
 import type { Location, ProviderRouteResponse, RouteOptions, RawRouteData, RouteStep } from '@/types'
+import type {
+  GoogleMapsLocation,
+  GoogleRoutesResponse,
+  GoogleRoute,
+  GoogleRouteLeg,
+  GoogleRouteStep,
+  Duration,
+  googleLatLngToCoordinates,
+} from '@/types/googleMaps'
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY
 
@@ -18,24 +27,6 @@ const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY
 const routesClient = new RoutesClient({
   apiKey: GOOGLE_MAPS_API_KEY,
 })
-
-/**
- * Google Maps Routes API location format
- */
-interface GoogleMapsLocation {
-  location?: {
-    latLng: {
-      latitude: number
-      longitude: number
-    }
-  }
-  address?: string
-}
-
-/**
- * Duration format (protobuf)
- */
-type Duration = string | { seconds: string | number }
 
 /**
  * Format location for Google Maps Routes API
@@ -94,7 +85,7 @@ export async function getRoute(
     }
 
     // Call Routes API
-    const [response] = await routesClient.computeRoutes(request as any, {
+    const [response] = await routesClient.computeRoutes(request as unknown as Parameters<typeof routesClient.computeRoutes>[0], {
       otherArgs: {
         headers: {
           'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs,routes.description,routes.warnings,routes.localizedValues',
@@ -107,7 +98,7 @@ export async function getRoute(
     }
 
     // Normalize the response to match our format
-    return normalizeRoutesApiResponse(response)
+    return normalizeRoutesApiResponse(response as unknown as GoogleRoutesResponse)
   } catch (error) {
     console.error('Google Maps Routes API error:', error)
     throw error
@@ -117,9 +108,9 @@ export async function getRoute(
 /**
  * Normalize Routes API (v2) response to our standard format
  */
-function normalizeRoutesApiResponse(routesResponse: any): ProviderRouteResponse {
-  const routes: RawRouteData[] = routesResponse.routes.map((route: any, index: number) => {
-    const leg = route.legs?.[0] // First leg of the route
+function normalizeRoutesApiResponse(routesResponse: GoogleRoutesResponse): ProviderRouteResponse {
+  const routes: RawRouteData[] = routesResponse.routes.map((route: GoogleRoute, index: number) => {
+    const leg: GoogleRouteLeg | undefined = route.legs?.[0] // First leg of the route
 
     // Convert duration from protobuf Duration format (e.g., "123s") to seconds
     const durationSeconds = parseDuration(route.duration)
@@ -143,14 +134,18 @@ function normalizeRoutesApiResponse(routesResponse: any): ProviderRouteResponse 
       // Start/End locations (from leg if available)
       startAddress: leg?.startLocation?.address || 'Start',
       endAddress: leg?.endLocation?.address || 'End',
-      startLocation: leg?.startLocation?.latLng,
-      endLocation: leg?.endLocation?.latLng,
+      startLocation: leg?.startLocation?.latLng
+        ? { lat: leg.startLocation.latLng.latitude, lng: leg.startLocation.latLng.longitude }
+        : undefined,
+      endLocation: leg?.endLocation?.latLng
+        ? { lat: leg.endLocation.latLng.latitude, lng: leg.endLocation.latLng.longitude }
+        : undefined,
 
       // Warnings and additional info
       warnings: route.warnings || [],
 
       // Steps (if legs data is available)
-      steps: leg?.steps?.map((step: any): RouteStep => ({
+      steps: leg?.steps?.map((step: GoogleRouteStep): RouteStep => ({
         instruction: step.navigationInstruction?.instructions || '',
         distance: formatDistance(step.distanceMeters || 0),
         duration: formatDuration(parseDuration(step.staticDuration)),

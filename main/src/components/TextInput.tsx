@@ -1,7 +1,12 @@
 import { useId } from 'react'
+import type { InputHTMLAttributes } from 'react'
 
-export function TextInput({ label, ...props }) {
-  let id = useId()
+interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string
+}
+
+export function TextInput({ label, ...props }: TextInputProps) {
+  const id = useId()
 
   return (
     <div className="group relative z-0 transition-all focus-within:z-10">

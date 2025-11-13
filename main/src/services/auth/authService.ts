@@ -11,6 +11,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  type User as FirebaseUser,
+  type Unsubscribe,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { User } from '@/models/User'
@@ -73,7 +75,7 @@ export async function signOut(): Promise<void> {
  * @param {function} callback - Called with user object or null
  * @returns {function} Unsubscribe function
  */
-export function onAuthChange(callback) {
+export function onAuthChange(callback: (user: FirebaseUser | null) => void): Unsubscribe {
   return onAuthStateChanged(auth, callback)
 }
 
@@ -81,7 +83,7 @@ export function onAuthChange(callback) {
  * Get current authenticated user
  * @returns {object|null} Current user or null
  */
-export function getCurrentUser() {
+export function getCurrentUser(): FirebaseUser | null {
   return auth.currentUser
 }
 
@@ -89,6 +91,6 @@ export function getCurrentUser() {
  * Check if user is authenticated
  * @returns {boolean}
  */
-export function isAuthenticated() {
+export function isAuthenticated(): boolean {
   return !!auth.currentUser
 }

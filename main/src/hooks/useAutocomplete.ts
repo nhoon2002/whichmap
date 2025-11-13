@@ -33,7 +33,7 @@ interface UseAutocompleteReturn {
   selectedPlace: SelectedPlace | null
   showDropdown: boolean
   handleInputChange: (value: string) => void
-  handleSelect: (prediction: any) => Promise<Place>
+  handleSelect: (prediction: AutocompletePrediction) => Promise<Place>
   setShowDropdown: (show: boolean) => void
   clear: () => void
 }
@@ -105,7 +105,7 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
   }, [])
 
   // Handle prediction selection
-  const handleSelect = useCallback(async (prediction: any): Promise<Place> => {
+  const handleSelect = useCallback(async (prediction: AutocompletePrediction): Promise<Place> => {
     try {
       setIsLoading(true)
       const placeDetails = await getPlaceDetails(prediction.place_id)

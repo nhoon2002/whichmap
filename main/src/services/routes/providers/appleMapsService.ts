@@ -66,7 +66,7 @@ export async function getRoute(
 
     if (!response.ok) {
       const errorText = await response.text()
-      let errorData: any = {}
+      let errorData: unknown = {}
       try {
         errorData = JSON.parse(errorText)
       } catch (e) {
@@ -78,8 +78,21 @@ export async function getRoute(
       console.error('  Response:', errorText)
       console.error('  Parsed:', errorData)
 
+      // Extract error message safely
+      const getErrorMessage = (data: unknown): string => {
+        if (typeof data === 'object' && data !== null) {
+          if ('error' in data && typeof data.error === 'object' && data.error !== null && 'message' in data.error) {
+            return String(data.error.message)
+          }
+          if ('message' in data) {
+            return String(data.message)
+          }
+        }
+        return ''
+      }
+
       throw new Error(
-        `Apple Maps API error: ${response.status} - ${errorData.error?.message || errorData.message || errorText || 'Unknown error'}`
+        `Apple Maps API error: ${response.status} - ${getErrorMessage(errorData) || errorText || 'Unknown error'}`
       )
     }
 

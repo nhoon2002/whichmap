@@ -174,5 +174,5 @@ export async function getFastestRoute(
     return durationA - durationB
   })
 
-  return sorted[0]
+  return sorted[0] ?? null
 }

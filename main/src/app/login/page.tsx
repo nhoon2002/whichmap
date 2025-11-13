@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
+    const unsubscribe = onAuthChange((user: any) => {
       if (user) {
         router.push('/')
       }
@@ -31,7 +31,7 @@ export default function LoginPage() {
     return () => unsubscribe()
   }, [router])
 
-  const handleEmailAuth = async (e) => {
+  const handleEmailAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -43,7 +43,7 @@ export default function LoginPage() {
         await signInWithEmail(email, password)
       }
       router.push('/')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Auth error:', err)
       setError(err.message || 'Authentication failed')
     } finally {
@@ -58,7 +58,7 @@ export default function LoginPage() {
     try {
       await signInWithGoogle()
       router.push('/')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Google sign in error:', err)
       setError(err.message || 'Google sign in failed')
     } finally {

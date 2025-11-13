@@ -2,16 +2,24 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
+import type { ProviderId } from '@/types'
+
+interface NavService {
+  key: ProviderId
+  label: string
+  available: boolean
+  comingSoon?: boolean
+}
 
 export function Settings() {
   const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const { preferences, toggleNavService, loading, isLoggedIn } = useUserPreferences()
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
@@ -25,7 +33,7 @@ export function Settings() {
     }
   }, [isOpen])
 
-  const navServices = [
+  const navServices: NavService[] = [
     { key: 'google', label: 'Google Maps', available: true },
     { key: 'apple', label: 'Apple Maps', available: true },
     { key: 'waze', label: 'Waze', available: false, comingSoon: true },

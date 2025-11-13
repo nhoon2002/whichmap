@@ -25,11 +25,12 @@ class InMemoryRatelimit {
     
     // Check if limit exceeded
     if (recentRequests.length >= this.maxRequests) {
+      const oldestRequest = recentRequests[0] ?? now
       return {
         success: false,
         limit: this.maxRequests,
         remaining: 0,
-        reset: recentRequests[0] + this.windowMs,
+        reset: oldestRequest + this.windowMs,
       }
     }
     

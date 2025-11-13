@@ -3,8 +3,9 @@ import { Header } from '@/components/Header'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { UserPreferencesProvider } from '@/contexts/UserPreferencesContext'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
     template: '%s - WhichMap',
     default: 'WhichMap - Compare Travel Times Across Map Providers',
@@ -12,7 +13,11 @@ export const metadata = {
   description: 'Compare travel times across Google Maps, Apple Maps, and Waze on a single screen.',
 }
 
-export default function RootLayout({ children }) {
+interface RootLayoutProps {
+  children: React.ReactNode
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className="h-full bg-neutral-50 text-base antialiased">
       <body className="flex min-h-full flex-col">

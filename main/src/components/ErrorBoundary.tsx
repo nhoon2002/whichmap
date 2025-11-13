@@ -4,26 +4,36 @@ import React from 'react'
 import { Container } from '@/components/Container'
 import { Button } from '@/components/Button'
 
+interface ErrorBoundaryProps {
+  children: React.ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error: Error | null
+  errorInfo: React.ErrorInfo | null
+}
+
 /**
  * Error Boundary Component
  * Catches JavaScript errors anywhere in the child component tree
  * Prevents the entire app from crashing
  */
-export class ErrorBoundary extends React.Component {
-  constructor(props) {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { hasError: false, error: null, errorInfo: null }
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
     // Update state so the next render will show the fallback UI
     return { hasError: true }
   }
 
-  componentDidCatch(error, errorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error to console (in production, send to error tracking service)
     console.error('Error Boundary caught an error:', error, errorInfo)
-    
+
     this.setState({
       error,
       errorInfo,
@@ -39,7 +49,7 @@ export class ErrorBoundary extends React.Component {
     this.setState({ hasError: false, error: null, errorInfo: null })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       // Render fallback UI
       return (
@@ -83,11 +93,11 @@ export class ErrorBoundary extends React.Component {
 
 /**
  * Functional wrapper for easier use
- * @param {React.ReactNode} children - Child components to wrap
- * @returns {React.ReactElement}
  */
-export function withErrorBoundary(Component) {
-  return function WithErrorBoundaryWrapper(props) {
+export function withErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>
+): React.FC<P> {
+  return function WithErrorBoundaryWrapper(props: P) {
     return (
       <ErrorBoundary>
         <Component {...props} />
@@ -95,4 +105,3 @@ export function withErrorBoundary(Component) {
     )
   }
 }
-

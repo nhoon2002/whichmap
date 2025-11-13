@@ -11,20 +11,21 @@ import { initGlobalHelpers } from '@/lib/helpers'
 import { filterRoutes, findFastestRoute, generateDeepLink } from '@/lib/routeHelpers'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
+import type { Location, Coordinates, Place } from '@/types'
 
 export default function Home() {
   const [startLocation, setStartLocation] = useState('')
   const [endLocation, setEndLocation] = useState('')
 
   // Store geocoded coordinates
-  const [startCoordinates, setStartCoordinates] = useState(null)
-  const [endCoordinates, setEndCoordinates] = useState(null)
+  const [startCoordinates, setStartCoordinates] = useState<Coordinates | null>(null)
+  const [endCoordinates, setEndCoordinates] = useState<Coordinates | null>(null)
 
   // Store SUBMITTED values (only updated when button is clicked)
-  const [submittedStart, setSubmittedStart] = useState(null)
-  const [submittedEnd, setSubmittedEnd] = useState(null)
+  const [submittedStart, setSubmittedStart] = useState<Location | null>(null)
+  const [submittedEnd, setSubmittedEnd] = useState<Location | null>(null)
 
-  const resultsRef = useRef(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { preferences } = useUserPreferences()
   const queryClient = useQueryClient()
 
@@ -34,7 +35,6 @@ export default function Home() {
     data: results,
     isLoading,
     error: queryError,
-    refetch,
   } = useRouteComparison(submittedStart, submittedEnd, preferences, {
     enabled: Boolean(submittedStart && submittedEnd),
   })
@@ -57,7 +57,7 @@ export default function Home() {
     }
   }, [results])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const start = startLocation.trim()
@@ -68,8 +68,8 @@ export default function Home() {
     }
 
     // Update submitted values - this will trigger the React Query to fetch
-    const startData = startCoordinates || start
-    const endData = endCoordinates || end
+    const startData: Location = startCoordinates || start
+    const endData: Location = endCoordinates || end
 
     setSubmittedStart(startData)
     setSubmittedEnd(endData)
@@ -100,7 +100,7 @@ export default function Home() {
                 label="Starting Location"
                 value={startLocation}
                 onChange={(value) => setStartLocation(value)}
-                onSelect={(place) => {
+                onSelect={(place: Place) => {
                   setStartLocation(place.address)
                   setStartCoordinates(place.coordinates)
                 }}
@@ -111,7 +111,7 @@ export default function Home() {
                 label="Destination"
                 value={endLocation}
                 onChange={(value) => setEndLocation(value)}
-                onSelect={(place) => {
+                onSelect={(place: Place) => {
                   setEndLocation(place.address)
                   setEndCoordinates(place.coordinates)
                 }}
@@ -162,8 +162,8 @@ export default function Home() {
                     eta={result.eta}
                     distance={result.distance}
                     unit={result.unit}
-                    isFastest={fastest && result.id === fastest.id}
-                    link={result.link || generateDeepLink(result.id, submittedStart, submittedEnd)}
+                    isFastest={fastest ? result.id === fastest.id : false}
+                    link={result.link || generateDeepLink(result.id, submittedStart!, submittedEnd!)}
                   />
                 ))}
               </dl>
@@ -205,3 +205,4 @@ export default function Home() {
     </main>
   )
 }
+

@@ -4,6 +4,7 @@ import { Border } from '@/components/Border'
 import { FadeIn } from '@/components/FadeIn'
 import clsx from 'clsx'
 import { openMapLink } from '@/lib/deeplinkHelpers'
+import type { ProviderCardProps } from '@/types'
 
 export function ProviderCard({ 
   provider, 
@@ -11,9 +12,9 @@ export function ProviderCard({
   distance, 
   unit = 'min', 
   isFastest = false, 
-  link // Single link prop - should be a Universal Link
-}) {
-  const handleOpenMap = (e) => {
+  link
+}: ProviderCardProps) {
+  const handleOpenMap = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     openMapLink(link)
   }
@@ -26,7 +27,7 @@ export function ProviderCard({
       position="left"
       className={clsx(
         'flex flex-col-reverse pl-8',
-        isFastest && 'before:!bg-green-500 after:!bg-green-500/10'
+        isFastest && 'before:bg-green-500! after:bg-green-500/10!'
       )}
     >
       <div className="mt-2 flex items-baseline justify-between">

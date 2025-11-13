@@ -38,7 +38,7 @@ export function UserPreferencesProvider({ children }: UserPreferencesProviderPro
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
+    const unsubscribe = onAuthChange((firebaseUser: FirebaseUser | null) => {
       setCurrentUser(firebaseUser)
     })
     return () => unsubscribe()

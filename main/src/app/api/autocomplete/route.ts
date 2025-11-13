@@ -4,9 +4,43 @@
  * Keeps API key server-side for security
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request) {
+interface AutocompletePrediction {
+  place_id: string
+  description: string
+  structured_formatting?: {
+    main_text: string
+    secondary_text: string
+  }
+  types?: string[]
+}
+
+interface GoogleAutocompleteResponse {
+  predictions: AutocompletePrediction[]
+  status: string
+  error_message?: string
+}
+
+interface PlaceDetailsGeometry {
+  location: {
+    lat: number
+    lng: number
+  }
+}
+
+interface GooglePlaceDetailsResponse {
+  result: {
+    formatted_address: string
+    geometry: PlaceDetailsGeometry
+    place_id: string
+    name: string
+  }
+  status: string
+  error_message?: string
+}
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const input = searchParams.get('input')
@@ -38,7 +72,7 @@ export async function GET(request) {
 
     // Call Google Places Autocomplete API
     const response = await fetch(autocompleteUrl)
-    const data = await response.json()
+    const data = await response.json() as GoogleAutocompleteResponse
 
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
       console.error('Google Autocomplete API error:', data.status, data.error_message)
@@ -65,7 +99,7 @@ export async function GET(request) {
  * Get place details by place_id
  * Used after user selects an autocomplete suggestion
  */
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { placeId } = body
@@ -95,7 +129,7 @@ export async function POST(request) {
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${params}`
 
     const response = await fetch(detailsUrl)
-    const data = await response.json()
+    const data = await response.json() as GooglePlaceDetailsResponse
 
     if (data.status !== 'OK') {
       console.error('Google Place Details API error:', data.status, data.error_message)
@@ -124,3 +158,4 @@ export async function POST(request) {
     )
   }
 }
+

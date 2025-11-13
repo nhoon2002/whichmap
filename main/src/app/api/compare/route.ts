@@ -1,15 +1,34 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { compareRoutes } from '@/services/routes/routeService'
 import { validateRouteComparison } from '@/lib/validation'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
+import type { RawRouteData, UserPreferences } from '@/types'
+
+interface TransformedRoute {
+  id: string
+  provider: string
+  eta?: number
+  distance?: string
+  unit?: string
+  summary?: string
+  durationText?: string
+  startAddress?: string
+  endAddress?: string
+  warnings?: string[]
+  steps?: any[]
+  deepLink?: string
+  webLink?: string
+  link?: string
+  message?: string
+}
 
 /**
  * POST /api/compare
  * Compare routes across map providers
  *
  * Body: {
- *   start: string,
- *   end: string,
+ *   start: string | { lat: number, lng: number },
+ *   end: string | { lat: number, lng: number },
  *   preferences: { navServices: { google, apple, waze } } (optional)
  * }
  * Returns: Array of routes from enabled providers
@@ -21,7 +40,7 @@ import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
  *
  * TODO: Add API key authentication for monetization
  */
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     // 1. Rate Limiting
     const rateLimitResult = await checkRateLimit(request)
@@ -53,6 +72,16 @@ export async function POST(request) {
       )
     }
 
+    if (!validation.data) {
+      return NextResponse.json(
+        { error: 'Invalid request data' },
+        { 
+          status: 400,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      )
+    }
+
     const { start, end, preferences } = validation.data
 
     // TODO: API key validation for monetization
@@ -63,9 +92,18 @@ export async function POST(request) {
 
     // TODO: If user is authenticated, load their preferences from Firestore
     // For now, use preferences from request body or defaults
+    
+    // Ensure preferences has navServices (use defaults if not provided)
+    const userPreferences: UserPreferences = {
+      navServices: preferences?.navServices || {
+        google: true,
+        apple: true,
+        waze: false,
+      }
+    }
 
     // 3. Fetch routes from all enabled providers
-    const routes = await compareRoutes(start, end, preferences)
+    const routes = await compareRoutes(start, end, userPreferences)
 
     // 4. Transform routes for frontend compatibility
     const results = transformRoutesForFrontend(routes)
@@ -83,17 +121,18 @@ export async function POST(request) {
       }
     )
 
-  } catch (error) {
+  } catch (error: unknown) {
     // Log error internally but don't expose details to client
     console.error('API Error:', error)
-    
+
     // Determine if it's a known error type
-    const isGoogleApiError = error.message?.includes('Google Maps')
-    const isValidationError = error.message?.includes('Invalid')
-    
+    const errorMessage = error instanceof Error ? error.message : ''
+    const isGoogleApiError = errorMessage.includes('Google Maps')
+    const isValidationError = errorMessage.includes('Invalid')
+
     return NextResponse.json(
       {
-        error: isGoogleApiError 
+        error: isGoogleApiError
           ? 'Unable to fetch route data. Please try again.'
           : isValidationError
           ? 'Invalid request. Please check your input.'
@@ -108,7 +147,7 @@ export async function POST(request) {
  * GET /api/compare?start={start}&end={end}
  * Alternative endpoint using query parameters
  */
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const start = searchParams.get('start')
   const end = searchParams.get('end')
@@ -121,7 +160,7 @@ export async function GET(request) {
   }
 
   // Reuse POST logic
-  return POST(new Request(request.url, {
+  return POST(new NextRequest(request.url, {
     method: 'POST',
     headers: request.headers,
     body: JSON.stringify({ start, end })
@@ -133,15 +172,15 @@ export async function GET(request) {
  * Maintains backward compatibility with existing frontend code
  * @private
  */
-function transformRoutesForFrontend(routes) {
+function transformRoutesForFrontend(routes: RawRouteData[]): TransformedRoute[] {
   return routes.map(route => {
     // For providers with full route data (like Google)
     if (route.duration && route.distance) {
       return {
         id: route.provider,
         provider: formatProviderName(route.provider),
-        eta: Math.round(route.durationInTraffic / 60) || Math.round(route.duration / 60),
-        distance: route.distanceText,
+        eta: Math.round((route.durationInTraffic || route.duration) / 60),
+        distance: route.distanceText || `${(route.distance / 1000).toFixed(1)} km`,
         unit: 'min',
 
         // Additional data for detailed view
@@ -151,8 +190,7 @@ function transformRoutesForFrontend(routes) {
         endAddress: route.endAddress,
         warnings: route.warnings,
         steps: route.steps,
-        deepLink: route.deepLink,
-        webLink: route.webLink,
+        link: route.link,
       }
     }
 
@@ -161,8 +199,7 @@ function transformRoutesForFrontend(routes) {
       id: route.provider,
       provider: formatProviderName(route.provider),
       message: route.message,
-      deepLink: route.deepLink,
-      webLink: route.webLink,
+      link: route.link,
     }
   })
 }
@@ -171,11 +208,12 @@ function transformRoutesForFrontend(routes) {
  * Format provider name for display
  * @private
  */
-function formatProviderName(provider) {
-  const names = {
+function formatProviderName(provider: string): string {
+  const names: Record<string, string> = {
     google: 'Google Maps',
     apple: 'Apple Maps',
     waze: 'Waze',
   }
   return names[provider] || provider
 }
+

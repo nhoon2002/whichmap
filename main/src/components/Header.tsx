@@ -7,14 +7,15 @@ import { onAuthChange, signOut } from '@/services/auth/authService'
 import { Container } from '@/components/Container'
 import { Button } from '@/components/Button'
 import { Settings } from '@/components/Settings'
+import type { User } from 'firebase/auth'
 
 export function Header() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((currentUser) => {
+    const unsubscribe = onAuthChange((currentUser: User | null) => {
       setUser(currentUser)
       setLoading(false)
     })

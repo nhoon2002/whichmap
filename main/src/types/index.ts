@@ -316,3 +316,60 @@ export interface ApiError {
   code?: string
   statusCode?: number
 }
+
+// ============================================
+// Utility Types & Helpers
+// ============================================
+
+/**
+ * Makes all properties of T deeply non-nullable
+ */
+export type DeepNonNullable<T> = {
+  [P in keyof T]-?: NonNullable<T[P]>
+}
+
+/**
+ * Makes specified properties required
+ */
+export type RequireKeys<T, K extends keyof T> = T & Required<Pick<T, K>>
+
+/**
+ * Makes specified properties optional
+ */
+export type OptionalKeys<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+
+/**
+ * Extract error message safely from unknown error
+ * @param error - Unknown error object
+ * @returns Error message string
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String(error.message)
+  }
+  return 'An unknown error occurred'
+}
+
+/**
+ * Type guard to check if value is defined (not null or undefined)
+ */
+export function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined
+}
+
+/**
+ * Type guard to check if error is an Error instance
+ */
+export function isError(error: unknown): error is Error {
+  return error instanceof Error
+}
+
+/**
+ * Async delay utility
+ * @param ms - Milliseconds to delay
+ */
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}

@@ -1,13 +1,21 @@
 import clsx from 'clsx'
+import type { ComponentPropsWithoutRef, ElementType } from 'react'
 
-export function Border({
+interface BorderProps<T extends ElementType = 'div'> {
+  as?: T
+  className?: string
+  position?: 'top' | 'left'
+  invert?: boolean
+}
+
+export function Border<T extends ElementType = 'div'>({
   as,
   className,
   position = 'top',
   invert = false,
   ...props
-}) {
-  let Component = as ?? 'div'
+}: BorderProps<T> & Omit<ComponentPropsWithoutRef<T>, keyof BorderProps<T>>) {
+  const Component = as ?? ('div' as ElementType)
 
   return (
     <Component

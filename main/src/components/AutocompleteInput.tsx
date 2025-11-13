@@ -8,6 +8,21 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { useAutocomplete } from '@/hooks/useAutocomplete'
+import type { Place, AutocompletePrediction } from '@/types'
+
+export interface AutocompleteInputProps {
+  label: string
+  placeholder?: string
+  value: string
+  onChange: (value: string) => void
+  onSelect?: (place: Place & { isCurrentLocation?: boolean }) => void
+  onClear?: () => void
+  onUseCurrentLocation?: (coords: { lat: number; lng: number }) => void
+  showLocationButton?: boolean
+  showClearButton?: boolean
+  className?: string
+  autoComplete?: string
+}
 
 export function AutocompleteInput({
   label,
@@ -15,28 +30,27 @@ export function AutocompleteInput({
   value,
   onChange,
   onSelect,
-  onUseCurrentLocation,
   onClear,
+  onUseCurrentLocation,
   showLocationButton = true,
   showClearButton = true,
   className = '',
   ...props
-}) {
+}: AutocompleteInputProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, keyof AutocompleteInputProps>) {
   const {
     input,
     predictions,
     isLoading,
-    selectedPlace,
     showDropdown,
     handleInputChange,
     handleSelect,
     setShowDropdown,
   } = useAutocomplete()
 
-  const inputRef = useRef(null)
-  const dropdownRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [locationError, setLocationError] = useState(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   // Sync internal state with external value
   useEffect(() => {
@@ -47,12 +61,12 @@ export function AutocompleteInput({
 
   // Handle clicks outside to close dropdown
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
+        !dropdownRef.current.contains(event.target as Node) &&
         inputRef.current &&
-        !inputRef.current.contains(event.target)
+        !inputRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false)
       }
@@ -63,14 +77,14 @@ export function AutocompleteInput({
   }, [setShowDropdown])
 
   // Handle input change
-  const onInputChange = (e) => {
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     handleInputChange(newValue)
     onChange?.(newValue)
   }
 
   // Handle prediction selection
-  const onPredictionSelect = async (prediction) => {
+  const onPredictionSelect = async (prediction: AutocompletePrediction) => {
     try {
       const placeDetails = await handleSelect(prediction)
 
@@ -86,7 +100,7 @@ export function AutocompleteInput({
   }
 
   // Handle keyboard navigation
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
       setShowDropdown(false)
     }
@@ -117,7 +131,7 @@ export function AutocompleteInput({
     setLocationError(null)
 
     try {
-      const position = await new Promise((resolve, reject) => {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           timeout: 10000,
@@ -148,23 +162,38 @@ export function AutocompleteInput({
       })
 
       setShowDropdown(false)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting location:', error)
-      
+
       // User-friendly error messages
       let errorMessage = 'Unable to get your location'
-      if (error.code === 1) {
-        errorMessage = 'Location access denied. Please enable location permissions.'
-      } else if (error.code === 2) {
-        errorMessage = 'Location unavailable. Please try again.'
-      } else if (error.code === 3) {
-        errorMessage = 'Location request timed out. Please try again.'
+
+      // Type guard for GeolocationPositionError
+      if (error && typeof error === 'object' && 'code' in error) {
+        const geoError = error as { code: number }
+        if (geoError.code === 1) {
+          errorMessage = 'Location access denied. Please enable location permissions.'
+        } else if (geoError.code === 2) {
+          errorMessage = 'Location unavailable. Please try again.'
+        } else if (geoError.code === 3) {
+          errorMessage = 'Location request timed out. Please try again.'
+        }
       }
-      
+
       setLocationError(errorMessage)
     } finally {
       setIsGettingLocation(false)
     }
+  }
+
+  // Type guard for AutocompletePrediction
+  const isValidPrediction = (pred: unknown): pred is AutocompletePrediction => {
+    return (
+      typeof pred === 'object' &&
+      pred !== null &&
+      'description' in pred &&
+      'place_id' in pred
+    )
   }
 
   return (
@@ -316,7 +345,7 @@ export function AutocompleteInput({
         >
           <ul className="max-h-60 overflow-y-auto">
             {predictions.map((prediction, index) => (
-              <li key={prediction.place_id || index}>
+              <li key={prediction.placeId || index}>
                 <button
                   type="button"
                   onClick={() => onPredictionSelect(prediction)}
@@ -347,11 +376,11 @@ export function AutocompleteInput({
                     {/* Address text */}
                     <div className="flex-1">
                       <div className="font-medium text-neutral-950">
-                        {prediction.structured_formatting?.main_text || prediction.description}
+                        {prediction.mainText || prediction.description}
                       </div>
-                      {prediction.structured_formatting?.secondary_text && (
+                      {prediction.secondaryText && (
                         <div className="mt-0.5 text-xs text-neutral-500">
-                          {prediction.structured_formatting.secondary_text}
+                          {prediction.secondaryText}
                         </div>
                       )}
                     </div>

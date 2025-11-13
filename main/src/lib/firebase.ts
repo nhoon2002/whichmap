@@ -14,7 +14,8 @@ const firebaseConfig = {
 }
 
 // Initialize Firebase (only if not already initialized)
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const existingApps = getApps()
+const app: FirebaseApp = existingApps.length === 0 ? initializeApp(firebaseConfig) : existingApps[0]!
 
 // Initialize Firebase services
 export const auth: Auth = getAuth(app)
