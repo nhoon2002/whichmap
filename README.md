@@ -1,194 +1,115 @@
 # WhichMap
 
-Compare travel times across Google Maps, Apple Maps, and Waze on a single screen.
+Compare travel times across multiple navigation providers on a single screen.
 
 ---
 
 ## 📊 Project Overview
 
-**WhichMap** is a web application that compares travel times across Google Maps, Apple Maps, and Waze on a single screen. Users enter start and destination locations, and the app displays estimated travel times from all providers side-by-side, highlighting the fastest route.
+**WhichMap** compares travel times across Google Maps, Apple Maps, Waze, and other navigation providers. Users enter start and destination locations, and the app displays estimated travel times from all providers side-by-side, highlighting the fastest route.
+
+**Vision:** Support regional navigation services worldwide (TMAP/KAKAO in South Korea, Yandex Maps in Russia, etc.)
 
 ---
 
-## 📁 Repository Structure
-
-The repository contains:
-
-- **`main/`** - **Production application** (all development happens here)
-- **`docs/`** - Comprehensive documentation
-- **`README.md`** - This file
-
----
-
-## 🏗️ Current Architecture (main/ directory)
-
-### Tech Stack
+## 🏗️ Tech Stack
 
 - **Next.js 16.0.1** (App Router, Turbopack)
 - **React 19.2.0**
-- **Tailwind CSS v4** (CSS-based configuration)
+- **Tailwind CSS v4**
 - **Framer Motion** (animations)
 - **Firebase v12.5.0** (Authentication + Firestore)
 - **React Query v5** (API caching)
 - **@googlemaps/routing v2** (Google Maps Routes API)
 - **Node.js 20.9.0+** required
 
-### Key Features Implemented ✅
+---
 
-**Phase 1 - Core UI (COMPLETE)**
-- ✅ Floating label form inputs
-- ✅ Provider result cards with fastest highlighting
-- ✅ Loading spinner with message
-- ✅ Error alerts
-- ✅ Smooth scroll to results
-- ✅ Responsive 3-column grid
-- ✅ Framer Motion animations
+## ✅ Current Status
 
-**Phase 2 - Infrastructure (COMPLETE)**
+### Implemented Features
+
+**Core UI**
+- ✅ Floating label form inputs with Google Places Autocomplete
+- ✅ Provider result cards with fastest route highlighting
+- ✅ Loading states and error handling
+- ✅ Smooth scroll animations (Framer Motion)
+- ✅ Responsive 3-column grid layout
+
+**Infrastructure**
 - ✅ Firebase Authentication (email/password + Google OAuth)
-- ✅ Header with auth state
-- ✅ Login page
-- ✅ API route separation (`/api/compare`)
-- ✅ Environment variable configuration
 - ✅ User preferences system (Firestore)
-
-**Phase 3 - API Integration & Security (COMPLETE)**
-- ✅ Google Maps Routes API v2 integration (working)
-- ✅ Apple Maps Server API integration (ETA only - no route polylines)
-- ✅ Google Geocoding API (server-side)
-- ✅ Google Places Autocomplete with debouncing
-- ✅ AutocompleteInput component with dropdown UI
-- ✅ Service layer architecture (routeService.js)
-- ✅ React Query caching
+- ✅ API route architecture (`/api/compare`)
 - ✅ Rate limiting (10 req/min per IP)
-- ✅ Input validation with Zod schemas (accepts addresses OR coordinates)
-- ✅ Error sanitization (no internal details exposed)
-- ⚠️ Waze - marked as "Coming Soon" (no public API available)
+- ✅ Input validation (Zod schemas)
+
+**Navigation Providers**
+- ✅ **Google Maps** - Routes API v2 with traffic-aware routing
+- ✅ **Apple Maps** - Server API integration (ETA only)
+- ⏳ **Waze** - Transport SDK integration pending approval
+- 🔮 **More providers** - TMAP, KAKAO, Yandex, etc. (planned)
+
+**API Integration**
+- ✅ Google Geocoding API (server-side)
+- ✅ Google Places Autocomplete (debounced)
+- ✅ Service layer architecture
+- ✅ React Query caching (5 min)
+- ✅ Universal links for all providers
+
+### Architecture Decisions
+
+**State Management:**
+- Form state → `useState`
+- API caching → React Query
+- User data → Firebase/Firestore
+- Preferences → **Client-side filtering only** (no API refetch on toggle)
+
+**Key Pattern:**
+- Button click → API fetches ALL providers
+- Toggle preference → Filter results client-side (no refetch)
+- Clean separation: data fetching vs. data filtering
 
 ---
 
-## 🗂️ File Structure (main/src/)
+## 🗂️ Project Structure
 
 ```
 main/src/
 ├── app/
 │   ├── api/
-│   │   ├── compare/route.js      # Route comparison endpoint (rate limited, validated)
-│   │   ├── geocode/route.js      # Google Geocoding API endpoint
-│   │   └── autocomplete/route.js # Google Places Autocomplete endpoint
+│   │   ├── compare/route.js      # Route comparison endpoint
+│   │   ├── geocode/route.js      # Geocoding endpoint
+│   │   └── autocomplete/route.js # Autocomplete endpoint
 │   ├── login/page.jsx            # Authentication page
-│   ├── layout.jsx                # Root layout with ErrorBoundary
-│   └── page.jsx                  # Main comparison page (with autocomplete)
+│   ├── layout.jsx                # Root layout
+│   └── page.jsx                  # Main comparison page
 ├── components/
-│   ├── AutocompleteInput.jsx     # Google Places autocomplete with dropdown
-│   ├── Border.jsx                # Decorative accent lines
-│   ├── Button.jsx                # Primary action button
-│   ├── Container.jsx             # Max-width wrapper
-│   ├── ErrorBoundary.jsx         # Error boundary component
-│   ├── FadeIn.jsx                # Animation components
+│   ├── AutocompleteInput.jsx     # Places autocomplete with dropdown
 │   ├── Header.jsx                # Navigation with auth
 │   ├── ProviderCard.jsx          # Result card component
-│   ├── Settings.jsx              # User preferences (Coming Soon badges)
-│   └── TextInput.jsx             # Floating label input
+│   └── Settings.jsx              # User preferences
 ├── contexts/
-│   └── UserPreferencesContext.jsx # React Context for shared user preferences
+│   └── UserPreferencesContext.jsx # Shared preferences state
 ├── hooks/
-│   ├── useAutocomplete.js        # Google Places autocomplete hook (debounced)
-│   └── useRouteComparison.js     # React Query hook for routes
-├── lib/
-│   ├── appleJWT.js               # Apple Maps JWT token generator & access token exchange
-│   ├── deeplinkHelpers.js        # Universal link generation for all providers
-│   ├── firebase.js               # Firebase initialization
-│   ├── helpers.js                # Global debug utilities
-│   ├── ratelimit.js              # Rate limiting utility (Upstash/in-memory)
-│   ├── routeHelpers.js           # Route filtering & business logic
-│   └── validation.js             # Zod schemas (accepts addresses OR coordinates)
-├── models/
-│   └── User.js                   # User data model (Firestore)
-├── providers/
-│   └── QueryProvider.jsx         # React Query setup
+│   ├── useAutocomplete.js        # Debounced autocomplete
+│   └── useRouteComparison.js     # React Query hook
 ├── services/
-│   ├── auth/
-│   │   └── authService.js        # Auth operations
+│   ├── auth/authService.js
 │   ├── geocoding/
-│   │   ├── geocodingService.js   # Google Geocoding client service
-│   │   └── autocompleteService.js # Google Places Autocomplete client service
+│   │   ├── geocodingService.js
+│   │   └── autocompleteService.js
 │   └── routes/
-│       ├── routeService.js       # Route orchestrator (with geocoding support)
+│       ├── routeService.js       # Provider orchestrator
 │       └── providers/
-│           ├── googleMapsService.js  # Google Maps Routes API v2
-│           ├── appleMapsService.js   # Apple Maps ETA API
-│           └── wazeService.js        # Waze (universal links only)
-└── styles/
-    ├── tailwind.css              # Tailwind v4 theme
-    └── base.css                  # Mona Sans font
+│           ├── googleMapsService.js
+│           ├── appleMapsService.js
+│           └── wazeService.js
+└── lib/
+    ├── appleJWT.js               # Apple Maps JWT authentication
+    ├── firebase.js               # Firebase initialization
+    ├── routeHelpers.js           # Route filtering logic
+    └── validation.js             # Zod schemas
 ```
-
----
-
-## 🔄 State Management Architecture
-
-The app uses a **hybrid approach**:
-
-| Tool | Purpose | Use Cases |
-|------|---------|-----------|
-| **useState** | Component-scoped state | Form inputs, UI toggles |
-| **Custom Hooks** | Reusable stateful logic | Firebase integration, combining states |
-| **Firebase/Firestore** | Real-time user data | Auth, preferences, saved routes |
-| **React Query** | External API caching | Google Maps, Waze, Yelp APIs |
-
----
-
-## 🎨 Design System
-
-**Colors:**
-- Background: `bg-neutral-50` (light mode)
-- Cards: `bg-white`
-- Text: `text-neutral-950` (primary), `text-neutral-600` (secondary)
-- Fastest highlight: `border-green-500`, `text-green-600`
-
-**Typography:**
-- Font: Mona Sans (variable font)
-- Headings: `font-display text-5xl sm:text-7xl`
-- Body: `text-base`
-- Metrics: `text-3xl sm:text-4xl font-display font-semibold`
-
-**Spacing:**
-- Section spacing: `mt-24 sm:mt-32 lg:mt-40`
-- Grid gaps: `gap-10`
-- Container: `max-w-7xl`
-
----
-
-## 🔑 Key Implementation Details
-
-### Google Maps Integration
-
-- Uses **Routes API v2** (not legacy Directions API)
-- Provides traffic-aware routing
-- Returns multiple route alternatives
-- **Performance note:** ~4s response time (vs ~500ms for legacy API)
-- Trade-off: Better accuracy and features
-
-### User Preferences System
-
-- Stored in Firestore (`users` collection)
-- Toggle visibility of nav services (Google/Apple/Waze)
-- Syncs across devices when logged in
-- Falls back to defaults when not logged in
-
-### API Route Architecture
-
-- `/api/compare` endpoint for external access
-- Accepts POST (JSON) and GET (query params)
-- Ready for API key authentication (TODO comments in place)
-- Designed for future monetization
-
-### Deep Links
-
-- Google Maps: `comgooglemaps://` (app) or `https://google.com/maps/dir/` (web)
-- Apple Maps: `maps://` (app only)
-- Waze: `waze://` (app) or `https://waze.com/ul` (web)
 
 ---
 
@@ -196,34 +117,30 @@ The app uses a **hybrid approach**:
 
 ### Prerequisites
 
-- Node.js 20.9.0 or higher
-- npm or yarn
-- Firebase account (for authentication and Firestore)
-- Google Maps API key
+- Node.js 20.9.0+
+- Firebase account (Authentication + Firestore)
+- Google Maps API key (with Routes, Geocoding, and Places APIs enabled)
+- Apple Maps Server API credentials (optional)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and navigate**
    ```bash
    git clone <repository-url>
-   cd maps
+   cd maps/main
    ```
 
-2. **Navigate to the main directory**
-   ```bash
-   cd main
-   ```
-
-3. **Install dependencies**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-4. **Set up environment variables**
-   
-   Create a `.env.local` file in the `main/` directory:
+3. **Set up environment variables**
+
+   Create `.env.local` in `main/` directory:
+
    ```env
-   # Firebase Configuration
+   # Firebase (client-side)
    NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=whichmap-eb2aa.firebaseapp.com
    NEXT_PUBLIC_FIREBASE_PROJECT_ID=whichmap-eb2aa
@@ -231,139 +148,205 @@ The app uses a **hybrid approach**:
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-   # Google Maps API Key (server-side only)
+   # Google Maps (server-side only)
    GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+
+   # Apple Maps (server-side only) - Optional
+   APPLE_MAPS_TEAM_ID=your_team_id
+   APPLE_MAPS_KEY_ID=your_key_id
+   APPLE_MAPS_PRIVATE_KEY=your_private_key_contents
    ```
 
-5. **Run the development server**
+4. **Run development server**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**
-   
-   Navigate to `http://localhost:3000`
+5. **Open browser**
+   ```
+   http://localhost:3000
+   ```
 
 ### Development Commands
 
 ```bash
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linter
-npm run lint
+npm run dev      # Development server
+npm run build    # Production build
+npm start        # Production server
+npm run lint     # Run linter
 ```
 
 ---
 
-## 📋 Current Status & Next Steps
+## 🔑 Key Implementation Notes
 
-### What's Working
+### Google Maps Routes API v2
 
-1. ✅ Full UI with animations
-2. ✅ Firebase authentication
-3. ✅ Google Maps Routes API integration
-4. ✅ Apple Maps ETA API integration (distance + time only)
-5. ✅ **Google Places Autocomplete with debouncing**
-6. ✅ **Google Geocoding API (server-side)**
-7. ✅ **AutocompleteInput component with dropdown**
-8. ✅ User preferences (show/hide services)
-9. ✅ React Query caching
-10. ✅ Responsive design
-11. ✅ Rate limiting (10 req/min per IP)
-12. ✅ Input validation with Zod (accepts addresses OR coordinates)
-13. ✅ Error boundaries
-14. ✅ Refactored state management (no duplication)
-15. ✅ Business logic in service layer
-16. ✅ Organized services directory structure
+- Uses official `@googlemaps/routing` SDK
+- Traffic-aware routing with multiple alternatives
+- ~4s response time (vs ~500ms for legacy Directions API)
+- Trade-off: Better accuracy and features for slower response
 
-### What's Pending
+### Apple Maps Server API
 
-1. ⏳ Waze integration (no public API available - marked as "Coming Soon")
-2. ⏳ API key authentication for `/api/compare` (for monetization)
-3. ⏳ Geocoding result caching in Firestore (reduce API costs)
-4. ⏳ Deployment configuration (Vercel/production)
+- Two-step authentication: JWT token → Access token → API calls
+- **Limitation:** Only returns ETA (distance + time), no route polylines
+- Useful for comparison but not detailed navigation
 
-### Phase 4 - Destination Discovery (Future)
+### Waze Transport SDK
 
-- Yelp + Google Places business search near destination
-- Side-by-side comparison of reviews/ratings
-- Business matching algorithm
-- Save favorites feature
+- Pending app approval from Waze
+- Will provide ETA data similar to other providers
+- No public API; using official Transport SDK
 
----
+### User Preferences
 
-## 🔐 Environment Variables
+- Stored in Firestore (`users/{uid}/preferences`)
+- Syncs across devices when logged in
+- **Important:** Preferences filter results client-side only (no API refetch)
+- Structure:
+  ```javascript
+  {
+    navServices: {
+      google: true,
+      apple: true,
+      waze: false
+    }
+  }
+  ```
 
-The app requires these environment variables:
+### Rate Limiting
 
-### Firebase (Client-side - NEXT_PUBLIC_ prefix)
-- `NEXT_PUBLIC_FIREBASE_API_KEY` - Firebase API key
-- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` - Firebase auth domain
-- `NEXT_PUBLIC_FIREBASE_PROJECT_ID` - Firebase project ID (whichmap-eb2aa)
-- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` - Firebase storage bucket
-- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` - Firebase messaging sender ID
-- `NEXT_PUBLIC_FIREBASE_APP_ID` - Firebase app ID
+- Currently: In-memory (10 req/min per IP)
+- **Production TODO:** Switch to Upstash Redis for serverless compatibility
 
-### Google Maps (Server-side only)
-- `GOOGLE_MAPS_API_KEY` - Google Maps API key (kept server-side for security)
+### Validation
 
-### Apple Maps (Server-side only)
-- `APPLE_MAPS_TEAM_ID` - Apple Developer Team ID (10 characters)
-- `APPLE_MAPS_KEY_ID` - Apple Maps API Key ID (10 characters)
-- `APPLE_MAPS_PRIVATE_KEY` - Apple Maps Private Key (.p8 file contents)
+- Zod schemas for all API inputs
+- Accepts both address strings and coordinate objects:
+  ```javascript
+  // Both formats valid
+  { start: "123 Main St, LA", end: "456 Oak Ave, LA" }
+  { start: {lat: 34.05, lng: -118.24}, end: {lat: 34.06, lng: -118.25} }
+  ```
 
----
+### Universal Links
 
-## 📚 Documentation
+All providers use universal links (work on desktop and mobile):
+- **Google Maps:** `https://www.google.com/maps/dir/?api=1&origin=...`
+- **Apple Maps:** `https://maps.apple.com/?saddr=...&daddr=...`
+- **Waze:** `https://waze.com/ul?q=...&navigate=yes`
 
-Comprehensive documentation is available in the `docs/` directory:
-
-1. **`api-usage.md`** - API endpoint documentation with examples
-2. **`firebase-setup.md`** - Complete Firebase setup guide
-3. **`firestore-schema.md`** - Database structure and models
-4. **`state-management-architecture.md`** - When to use Firebase vs React Query
-5. **`whichmap-implementation-guide.md`** - Implementation roadmap
-6. **`v1-analysis.md`** - TailwindCSS template analysis
-7. **`v1-components-reference.md`** - Component library reference
-8. **`v1-design-system.md`** - Complete design tokens
+Mobile: Opens native app if installed, otherwise web browser
+Desktop: Opens web interface
 
 ---
 
-## 💡 Notable Patterns & Best Practices
+## 📋 Roadmap
 
-1. **Service Layer Architecture** - Clean separation between UI and API calls
-2. **Model Pattern** - User.js follows Laravel-style model pattern
-3. **Custom Hooks** - Reusable logic for Firebase and React Query
-4. **Global Helpers** - Debug utilities available in dev mode (`log`, `logger`, etc.)
-5. **Animation System** - FadeIn/FadeInStagger with scroll triggers
-6. **Responsive Design** - Mobile-first with progressive enhancement
+### Phase 3 - Core Features (Current)
+- [x] Google Maps integration
+- [x] Apple Maps integration
+- [ ] Waze Transport SDK (pending approval)
+- [ ] Production rate limiting (Upstash Redis)
+- [ ] Geocoding result caching
+- [ ] API key authentication for monetization
+
+### Phase 4 - International Expansion
+- [ ] TMAP (South Korea)
+- [ ] KAKAO Map (South Korea)
+- [ ] Yandex Maps (Russia)
+- [ ] Baidu Maps (China)
+- [ ] Additional regional providers
+
+### Phase 5 - Destination Discovery
+- [ ] Yelp business search near destination
+- [ ] Google Places integration
+- [ ] Side-by-side review comparison
+- [ ] Business matching algorithm
+- [ ] Save favorites feature
+
+### Phase 6 - Deployment
+- [ ] Production environment setup
+- [ ] Monitoring and analytics
+- [ ] Error tracking
+- [ ] Performance optimization
 
 ---
 
-## 🚀 Key Insights
+## 🎨 Design System
 
-1. **Apple Maps Server API is LIMITED** - Only provides ETA (distance + time), no route polylines or turn-by-turn
-2. **Apple Maps requires two-step auth** - JWT token → Access token → API calls
-3. **Google Places Autocomplete optimizes costs** - Geocoding only when needed (fallback)
-4. **Waze has no public API** - Only universal links available for navigation
-5. **Universal Links work across platforms** - Automatically open native app on mobile, web on desktop
-6. **Routes API v2 is slower but more accurate** - ~4s vs ~500ms (legacy), but includes traffic
-7. **React Query handles all API caching** - No need for manual cache management
-8. **Firebase handles all user data** - Auth + Firestore for preferences
-9. **The app is production-ready** - Just needs environment variables configured
+**Colors:**
+- Background: `bg-neutral-50`
+- Cards: `bg-white`
+- Text: `text-neutral-950` (primary), `text-neutral-600` (secondary)
+- Fastest highlight: `border-green-500`, `text-green-600`
+
+**Typography:**
+- Font: Mona Sans (variable font)
+- Headings: `font-display text-5xl sm:text-7xl`
+- Metrics: `text-3xl sm:text-4xl font-display font-semibold`
+
+**Spacing:**
+- Section spacing: `mt-24 sm:mt-32 lg:mt-40`
+- Grid gaps: `gap-10`
+
+---
+
+## 🔐 Security
+
+- ✅ API keys server-side only
+- ✅ Input validation with Zod
+- ✅ Rate limiting per IP
+- ✅ Error sanitization (no internal details exposed)
+- ✅ Firebase Authentication
+- ⏳ API key authentication for `/api/compare` (TODO)
+
+---
+
+## 📚 API Reference
+
+### POST /api/compare
+
+Compare routes across all navigation providers.
+
+**Request:**
+```json
+{
+  "start": "1932 Selby Ave, Los Angeles, CA",
+  "end": "111 N Broadway, Los Angeles, CA"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "start": "1932 Selby Ave, Los Angeles, CA",
+  "end": "111 N Broadway, Los Angeles, CA",
+  "results": [
+    {
+      "id": "google",
+      "provider": "Google Maps",
+      "eta": 25,
+      "distance": "15.2 mi",
+      "unit": "min",
+      "link": "https://www.google.com/maps/dir/...",
+      "durationText": "25 min",
+      "summary": "Via I-405 N"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Rate Limit:** 10 requests per minute per IP
 
 ---
 
 ## 🤝 Contributing
 
-This is a personal project. For major changes, please open an issue first to discuss what you would like to change.
+This is a personal project. For major changes, please open an issue first.
 
 ---
 
@@ -376,13 +359,11 @@ MIT © 2025 Nam Kim
 ## 🔗 Links
 
 - **Live Demo:** Coming soon
-- **Buy Me a Coffee:** https://buymeacoffee.com/whichmap
+- **Buy Me a Coffee:** https://buymeacoffee.com/whichmap ☕
 - **Firebase Console:** https://console.firebase.google.com/project/whichmap-eb2aa
 
 ---
 
 ## 📞 Support
 
-For questions or issues, please refer to the documentation in the `docs/` directory or open an issue on GitHub.
-
-
+For questions or issues, open an issue on GitHub or reach out via the support link.
