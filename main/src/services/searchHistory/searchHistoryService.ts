@@ -14,6 +14,7 @@ import {
   getDocs,
   Timestamp,
   deleteDoc,
+  updateDoc,
   doc
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -59,13 +60,34 @@ export async function addToSearchHistory(
   // If user is logged in, save to Firestore
   if (userId) {
     try {
-      await addDoc(collection(db, COLLECTION_NAME), {
-        userId,
-        address,
-        coordinates: coordinates || null,
-        searchType: searchType || null,
-        timestamp: Timestamp.now(),
-      })
+      // Check if this address already exists for this user
+      const existingQuery = query(
+        collection(db, COLLECTION_NAME),
+        where('userId', '==', userId),
+        where('address', '==', address),
+        limit(1)
+      )
+      
+      const existingSnapshot = await getDocs(existingQuery)
+      
+      if (!existingSnapshot.empty && existingSnapshot.docs[0]) {
+        // Update existing entry with new timestamp and coordinates
+        const docRef = doc(db, COLLECTION_NAME, existingSnapshot.docs[0].id)
+        await updateDoc(docRef, {
+          coordinates: coordinates || null,
+          searchType: searchType || null,
+          timestamp: Timestamp.now(),
+        })
+      } else {
+        // Create new entry
+        await addDoc(collection(db, COLLECTION_NAME), {
+          userId,
+          address,
+          coordinates: coordinates || null,
+          searchType: searchType || null,
+          timestamp: Timestamp.now(),
+        })
+      }
 
       // Optional: Clean up old entries (keep last 50 for analytics)
       await cleanupOldHistory(userId, 50)
