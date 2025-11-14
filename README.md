@@ -31,14 +31,18 @@ Compare travel times across multiple navigation providers on a single screen.
 
 **Core UI**
 - ✅ Floating label form inputs with Google Places Autocomplete
-- ✅ Provider result cards with fastest route highlighting
+- ✅ Provider result cards with fastest route highlighting (Uber-style design)
+- ✅ Split-screen layout (desktop: inputs left, results right)
 - ✅ Loading states and error handling
 - ✅ Smooth scroll animations (Framer Motion)
-- ✅ Responsive 3-column grid layout
+- ✅ Search history with "Use current location" feature
+- ✅ Official app icons (Google Maps, Apple Maps, Waze)
 
 **Infrastructure**
 - ✅ Firebase Authentication (email/password + Google OAuth)
 - ✅ User preferences system (Firestore)
+- ✅ Search history (localStorage for anonymous, Firestore for logged-in)
+- ✅ Commission tracking system (UTM attribution, click tracking)
 - ✅ API route architecture (`/api/compare`)
 - ✅ Rate limiting (10 req/min per IP)
 - ✅ Input validation (Zod schemas)
@@ -77,38 +81,42 @@ Compare travel times across multiple navigation providers on a single screen.
 main/src/
 ├── app/
 │   ├── api/
-│   │   ├── compare/route.js      # Route comparison endpoint
-│   │   ├── geocode/route.js      # Geocoding endpoint
-│   │   └── autocomplete/route.js # Autocomplete endpoint
-│   ├── login/page.jsx            # Authentication page
-│   ├── layout.jsx                # Root layout
-│   └── page.jsx                  # Main comparison page
+│   │   ├── compare/route.ts      # Route comparison endpoint
+│   │   ├── geocode/route.ts      # Geocoding endpoint
+│   │   └── autocomplete/route.ts # Autocomplete endpoint
+│   ├── login/page.tsx            # Authentication page
+│   ├── layout.tsx                # Root layout
+│   └── page.tsx                  # Main comparison page
 ├── components/
-│   ├── AutocompleteInput.jsx     # Places autocomplete with dropdown
-│   ├── Header.jsx                # Navigation with auth
-│   ├── ProviderCard.jsx          # Result card component
-│   └── Settings.jsx              # User preferences
+│   ├── AutocompleteInput.tsx     # Places autocomplete + search history
+│   ├── Header.tsx                # Navigation with auth
+│   ├── ProviderCard.tsx          # Result card (Uber-style design)
+│   └── Settings.tsx              # User preferences
 ├── contexts/
-│   └── UserPreferencesContext.jsx # Shared preferences state
+│   └── UserPreferencesContext.tsx # Shared preferences state
 ├── hooks/
-│   ├── useAutocomplete.js        # Debounced autocomplete
-│   └── useRouteComparison.js     # React Query hook
+│   ├── useAutocomplete.ts        # Debounced autocomplete
+│   └── useRouteComparison.ts     # React Query hook
 ├── services/
-│   ├── auth/authService.js
+│   ├── auth/authService.ts
 │   ├── geocoding/
-│   │   ├── geocodingService.js
-│   │   └── autocompleteService.js
+│   │   ├── geocodingService.ts
+│   │   └── autocompleteService.ts
+│   ├── searchHistory/
+│   │   └── searchHistoryService.ts  # Search history (local + Firestore)
+│   ├── tracking/
+│   │   └── trackingService.ts       # Commission tracking system
 │   └── routes/
-│       ├── routeService.js       # Provider orchestrator
+│       ├── routeService.ts       # Provider orchestrator
 │       └── providers/
-│           ├── googleMapsService.js
-│           ├── appleMapsService.js
-│           └── wazeService.js
+│           ├── googleMapsService.ts
+│           ├── appleMapsService.ts
+│           └── wazeService.ts
 └── lib/
-    ├── appleJWT.js               # Apple Maps JWT authentication
-    ├── firebase.js               # Firebase initialization
-    ├── routeHelpers.js           # Route filtering logic
-    └── validation.js             # Zod schemas
+    ├── appleJWT.ts               # Apple Maps JWT authentication
+    ├── firebase.ts               # Firebase initialization
+    ├── routeHelpers.ts           # Route filtering logic
+    └── validation.ts             # Zod schemas
 ```
 
 ---
@@ -244,33 +252,44 @@ Desktop: Opens web interface
 
 ## 📋 Roadmap
 
-### Phase 3 - Core Features (Current)
+### Phase 3 - Core Features ✅ COMPLETE
 - [x] Google Maps integration
 - [x] Apple Maps integration
+- [x] Search history (local + Firestore)
+- [x] Commission tracking system
+- [x] UTM campaign attribution
+- [x] Uber-style UI design
 - [ ] Waze Transport SDK (pending approval)
 - [ ] Production rate limiting (Upstash Redis)
 - [ ] Geocoding result caching
-- [ ] API key authentication for monetization
 
-### Phase 4 - International Expansion
+### Phase 4 - Analytics & Monetization
+- [x] Commission tracking infrastructure
+- [ ] Admin dashboard for analytics
+- [ ] Revenue reporting
+- [ ] BigQuery export for advanced analytics
+- [ ] Negotiate commission deals with providers
+- [ ] API key authentication for external access
+
+### Phase 5 - International Expansion
 - [ ] TMAP (South Korea)
 - [ ] KAKAO Map (South Korea)
 - [ ] Yandex Maps (Russia)
 - [ ] Baidu Maps (China)
 - [ ] Additional regional providers
 
-### Phase 5 - Destination Discovery
+### Phase 6 - Destination Discovery
 - [ ] Yelp business search near destination
 - [ ] Google Places integration
 - [ ] Side-by-side review comparison
 - [ ] Business matching algorithm
 - [ ] Save favorites feature
 
-### Phase 6 - Deployment
+### Phase 7 - Production Deployment
 - [ ] Production environment setup
-- [ ] Monitoring and analytics
-- [ ] Error tracking
+- [ ] Monitoring and error tracking
 - [ ] Performance optimization
+- [ ] Load testing
 
 ---
 
@@ -353,6 +372,17 @@ This is a personal project. For major changes, please open an issue first.
 ## 📄 License
 
 MIT © 2025 Nam Kim
+
+---
+
+## 📚 Documentation
+
+- **README.md** (this file) - Project overview and setup
+- **CLAUDE.md** - Development guide for AI assistants
+- **TRACKING_README.md** - Complete commission tracking system documentation
+- **FIRESTORE_SETUP.md** - Firebase/Firestore configuration guide
+- **SEARCH_HISTORY_IMPLEMENTATION.md** - Search history feature details
+- **firestore.rules.example** - Security rules template
 
 ---
 

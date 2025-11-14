@@ -32,7 +32,7 @@ interface UseAutocompleteReturn {
   isLoading: boolean
   selectedPlace: SelectedPlace | null
   showDropdown: boolean
-  handleInputChange: (value: string) => void
+  handleInputChange: (value: string, skipAutocomplete?: boolean) => void
   handleSelect: (prediction: AutocompletePrediction) => Promise<Place>
   setShowDropdown: (show: boolean) => void
   clear: () => void
@@ -99,7 +99,10 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
   }, [input, debounceMs, minChars])
 
   // Handle input change
-  const handleInputChange = useCallback((value: string) => {
+  const handleInputChange = useCallback((value: string, skipAutocomplete = false) => {
+    if (skipAutocomplete) {
+      justSelected.current = true
+    }
     setInput(value)
     setSelectedPlace(null) // Clear selection when user types
   }, [])

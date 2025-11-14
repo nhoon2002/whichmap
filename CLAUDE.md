@@ -65,15 +65,17 @@ The development server runs at `http://localhost:3000`
 
 ### Phase 1 - Core UI ✅ COMPLETE
 
-The main application (`main/src/app/page.jsx`) is fully functional with:
+The main application (`main/src/app/page.tsx`) is fully functional with:
 
 **UI Components Built:**
-- ✅ Floating label form inputs (TextInput component)
-- ✅ Provider result cards with fastest highlighting (ProviderCard component)
+- ✅ Floating label form inputs with Google Places Autocomplete
+- ✅ Provider result cards with Uber-style design (ProviderCard component)
+- ✅ Official app icons (Google Maps, Apple Maps, Waze - PNG format)
+- ✅ Split-screen layout (desktop: inputs left, results right)
+- ✅ Search history dropdown with "Use current location" feature
 - ✅ Loading spinner with message
 - ✅ Error alerts
-- ✅ Smooth scroll to results after comparison
-- ✅ Responsive 3-column grid (mobile: 1 col, tablet: 2 col, desktop: 3 col)
+- ✅ Smooth scroll to results after comparison (mobile only)
 - ✅ Header with authentication state
 - ✅ Login page with email/password and Google OAuth
 
@@ -81,8 +83,10 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 - ✅ Form validation (requires both start and end)
 - ✅ Real-time route comparison from enabled providers
 - ✅ Fastest route detection (compares ETAs)
-- ✅ Green highlighting for fastest provider
+- ✅ Green border highlighting for fastest provider (3px thick)
 - ✅ Universal links to all 3 providers (Google Maps, Apple Maps, Waze)
+- ✅ Search history (localStorage for anonymous, Firestore for logged-in)
+- ✅ Commission tracking system (UTM attribution, click tracking)
 - ✅ Framer Motion animations (FadeIn/FadeInStagger)
 - ✅ Smooth scroll animation after results load
 - ✅ Buy Me a Coffee link in footer (https://buymeacoffee.com/whichmap)
@@ -97,6 +101,7 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 **Tech Stack:**
 - Next.js 16.0.1 (App Router, Turbopack)
 - React 19.2.0
+- **TypeScript 5.9.3** (Strict mode enabled with enhanced checks)
 - Tailwind CSS v4
 - Framer Motion
 - Firebase Authentication v12.5.0
@@ -108,46 +113,68 @@ The main application (`main/src/app/page.jsx`) is fully functional with:
 ```
 main/
 ├── .env.local.example       # Firebase config template
+├── TYPESCRIPT_MIGRATION_COMPLETE.md    # TypeScript migration summary
+├── TYPESCRIPT_IMPROVEMENTS.md          # Detailed improvement documentation
 ├── src/
 │   ├── app/
 │   │   ├── api/
 │   │   │   ├── compare/
-│   │   │   │   └── route.js      # API endpoint for route comparison
+│   │   │   │   └── route.ts      # API endpoint for route comparison
 │   │   │   ├── geocode/
-│   │   │   │   └── route.js      # Google Geocoding API endpoint
+│   │   │   │   └── route.ts      # Google Geocoding API endpoint
 │   │   │   └── autocomplete/
-│   │   │       └── route.js      # Google Places Autocomplete API endpoint
+│   │   │       └── route.ts      # Google Places Autocomplete API endpoint
 │   │   ├── login/
-│   │   │   └── page.jsx          # Authentication page (email/password + Google OAuth)
-│   │   ├── layout.jsx            # Root layout with Header component
-│   │   └── page.jsx              # Main comparison page (with autocomplete)
+│   │   │   └── page.tsx          # Authentication page (email/password + Google OAuth)
+│   │   ├── layout.tsx            # Root layout with Header component
+│   │   └── page.tsx              # Main comparison page (with autocomplete)
 │   ├── components/
-│   │   ├── AutocompleteInput.jsx # Google Places autocomplete input with dropdown
-│   │   ├── Border.jsx            # Decorative accent lines (from v1)
-│   │   ├── Button.jsx            # Primary action button (from v1)
-│   │   ├── Container.jsx         # Max-width wrapper (from v1)
-│   │   ├── FadeIn.jsx            # Animation components (from v1, fixed)
-│   │   ├── Header.jsx            # Navigation with auth state and Sign In/Out
-│   │   ├── ProviderCard.jsx      # Custom result card component
-│   │   └── TextInput.jsx         # Custom floating label input
+│   │   ├── AutocompleteInput.tsx # Google Places autocomplete input with dropdown
+│   │   ├── Border.tsx            # Decorative accent lines (from v1)
+│   │   ├── Button.tsx            # Primary action button (from v1)
+│   │   ├── Container.tsx         # Max-width wrapper (from v1)
+│   │   ├── FadeIn.tsx            # Animation components (from v1, fixed)
+│   │   ├── Header.tsx            # Navigation with auth state and Sign In/Out
+│   │   ├── ProviderCard.tsx      # Custom result card component
+│   │   ├── Settings.tsx          # Settings dropdown for nav services
+│   │   ├── TextInput.tsx         # Custom floating label input
+│   │   └── ErrorBoundary.tsx     # Error boundary component
+│   ├── contexts/
+│   │   └── UserPreferencesContext.tsx # User preferences state management
+│   ├── providers/
+│   │   └── QueryProvider.tsx     # React Query provider
 │   ├── hooks/
-│   │   ├── useAutocomplete.js    # Google Places autocomplete hook with debouncing
-│   │   └── useRouteComparison.js # React Query hook for route fetching
+│   │   ├── useAutocomplete.ts    # Google Places autocomplete hook with debouncing
+│   │   └── useRouteComparison.ts # React Query hook for route fetching
 │   ├── services/
+│   │   ├── auth/
+│   │   │   └── authService.ts    # Firebase authentication service
 │   │   ├── geocoding/
-│   │   │   ├── geocodingService.js    # Google Geocoding client service
-│   │   │   └── autocompleteService.js # Google Places Autocomplete client service
+│   │   │   ├── geocodingService.ts    # Google Geocoding client service
+│   │   │   └── autocompleteService.ts # Google Places Autocomplete client service
+│   │   ├── searchHistory/
+│   │   │   └── searchHistoryService.ts # Search history (local + Firestore)
+│   │   ├── tracking/
+│   │   │   └── trackingService.ts      # Commission tracking system
 │   │   └── routes/
-│   │       ├── routeService.js        # Route orchestrator (coordinates all providers)
+│   │       ├── routeService.ts        # Route orchestrator (coordinates all providers)
 │   │       └── providers/
-│   │           ├── googleMapsService.js # Google Maps Routes API v2
-│   │           ├── appleMapsService.js  # Apple Maps ETA API
-│   │           └── wazeService.js       # Waze (universal links only)
+│   │           ├── googleMapsService.ts # Google Maps Routes API v2
+│   │           ├── appleMapsService.ts  # Apple Maps ETA API
+│   │           └── wazeService.ts       # Waze (universal links only)
 │   ├── lib/
-│   │   ├── appleJWT.js           # Apple Maps JWT token generator & access token exchange
-│   │   ├── deeplinkHelpers.js    # Universal link generation for all providers
-│   │   ├── firebase.js           # Firebase initialization and auth
-│   │   ├── helpers.js            # Global debug utilities
+│   │   ├── appleJWT.ts           # Apple Maps JWT token generator & access token exchange
+│   │   ├── deeplinkHelpers.ts    # Universal link generation for all providers
+│   │   ├── firebase.ts           # Firebase initialization and auth
+│   │   ├── helpers.ts            # Global debug utilities
+│   │   ├── ratelimit.ts          # Rate limiting utility
+│   │   ├── routeHelpers.ts       # Route filtering and business logic
+│   │   └── validation.ts         # Zod schemas for input validation
+│   ├── models/
+│   │   └── User.ts               # User Firestore model
+│   ├── types/
+│   │   ├── index.ts              # Core type definitions
+│   │   └── googleMaps.ts         # Google Maps API type definitions
 │   │   ├── validation.js         # Zod schemas (accepts addresses OR coordinates)
 │   │   └── routeHelpers.js       # Route filtering and business logic
 │   ├── types/
@@ -316,9 +343,12 @@ See `docs/api-usage.md` for complete API documentation including React Native ex
 - ✅ Apple Maps /v1/etas endpoint (NOTE: Only provides distance + time, no route polylines)
 - ✅ Google Geocoding API integration (server-side)
 - ✅ Google Places Autocomplete with debouncing (300ms)
-- ✅ AutocompleteInput component with dropdown UI
+- ✅ AutocompleteInput component with dropdown UI + search history
+- ✅ Search history system (localStorage for anonymous, Firestore for logged-in)
+- ✅ "Use current location" feature (geolocation API)
+- ✅ Commission tracking system (UTM attribution, click tracking)
 - ✅ Coordinate support for all providers (geocoding when needed)
-- ✅ Service layer architecture (routeService.js with normalizeLocation)
+- ✅ Service layer architecture (routeService.ts with normalizeLocation)
 - ✅ React Query caching
 - ✅ Rate limiting (10 req/min per IP)
 - ✅ Input validation with Zod schemas (accepts addresses OR coordinates)
@@ -327,6 +357,7 @@ See `docs/api-usage.md` for complete API documentation including React Native ex
 
 **Next steps:**
 - [ ] Waze API integration (no public API available)
+- [ ] Admin dashboard for tracking analytics
 - [ ] API key authentication for `/api/compare` endpoint (for monetization)
 - [ ] Geocoding result caching in Firestore (reduce API costs)
 
@@ -494,7 +525,12 @@ After comparing travel times, users can search for businesses near their destina
 
 ## Documentation
 
-- `CLAUDE.md` - This file, project overview and status
+- `CLAUDE.md` - This file, project overview and status for AI assistants
+- `README.md` - Main project documentation
+- `TRACKING_README.md` - Complete commission tracking system guide
+- `FIRESTORE_SETUP.md` - Firebase/Firestore setup and configuration
+- `SEARCH_HISTORY_IMPLEMENTATION.md` - Search history feature documentation
+- `firestore.rules.example` - Firestore security rules template
 - `docs/firebase-setup.md` - Complete Firebase authentication guide
 - `docs/api-usage.md` - API endpoint documentation with examples
 - `docs/v1-*.md` - TailwindCSS v1 template analysis

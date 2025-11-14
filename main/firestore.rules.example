@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users can only read/write their own document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Search History Collection
+    // Users can only read/write their own search history
+    match /search_history/{historyId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Tracking Events Collection (for commission attribution)
+    // Write-only for users, read for admins only
+    match /tracking_events/{eventId} {
+      // Anyone can create tracking events (including anonymous users)
+      allow create: if true;
+      
+      // Users can update events by trackingCode (for click tracking)
+      allow update: if request.resource.data.trackingCode == resource.data.trackingCode;
+      
+      // Only admins can read (for analytics/commission reports)
+      // Remove this rule if you don't have admin role system yet
+      // allow read: if request.auth != null && 
+      //                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

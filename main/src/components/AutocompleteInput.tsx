@@ -8,6 +8,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { useAutocomplete } from '@/hooks/useAutocomplete'
+import { getSearchHistory, type SearchHistoryItem } from '@/services/searchHistory/searchHistoryService'
 import type { Place, AutocompletePrediction } from '@/types'
 
 export interface AutocompleteInputProps {
@@ -22,6 +23,7 @@ export interface AutocompleteInputProps {
   showClearButton?: boolean
   className?: string
   autoComplete?: string
+  userId?: string | null  // Added for auth-aware history
 }
 
 export function AutocompleteInput({
@@ -35,6 +37,7 @@ export function AutocompleteInput({
   showLocationButton = true,
   showClearButton = true,
   className = '',
+  userId = null,
   ...props
 }: AutocompleteInputProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, keyof AutocompleteInputProps>) {
   const {
@@ -51,6 +54,18 @@ export function AutocompleteInput({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false)
+  const [justSelectedFromHistory, setJustSelectedFromHistory] = useState(false)
+
+  // Load search history on mount and when userId changes
+  useEffect(() => {
+    const loadHistory = async () => {
+      const history = await getSearchHistory(userId)
+      setSearchHistory(history)
+    }
+    loadHistory()
+  }, [userId])
 
   // Sync internal state with external value
   useEffect(() => {
@@ -69,6 +84,7 @@ export function AutocompleteInput({
         !inputRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false)
+        setShowHistoryDropdown(false)
       }
     }
 
@@ -81,6 +97,32 @@ export function AutocompleteInput({
     const newValue = e.target.value
     handleInputChange(newValue)
     onChange?.(newValue)
+    
+    // Hide history dropdown when user starts typing
+    if (newValue) {
+      setShowHistoryDropdown(false)
+    }
+    
+    // Reset the flag when user manually edits
+    if (justSelectedFromHistory) {
+      setJustSelectedFromHistory(false)
+    }
+  }
+
+  // Handle input focus
+  const onInputFocus = () => {
+    // If just selected from history, don't show any dropdown
+    if (justSelectedFromHistory) {
+      return
+    }
+    
+    // If input is empty, show history/location dropdown
+    if (!input) {
+      setShowHistoryDropdown(true)
+    } else if (predictions.length > 0) {
+      // Only show predictions if user has manually typed (not from history)
+      setShowDropdown(true)
+    }
   }
 
   // Handle prediction selection
@@ -111,6 +153,7 @@ export function AutocompleteInput({
     handleInputChange('')
     onChange?.('')
     setShowDropdown(false)
+    setShowHistoryDropdown(true) // Show history after clearing
     setLocationError(null)
     
     // Notify parent that input was cleared
@@ -118,6 +161,30 @@ export function AutocompleteInput({
     
     // Focus back on input
     inputRef.current?.focus()
+  }
+
+  // Handle history item selection
+  const onHistorySelect = (item: SearchHistoryItem) => {
+    // Pass skipAutocomplete=true to prevent autocomplete trigger
+    handleInputChange(item.address, true)
+    onChange?.(item.address)
+    
+    // Notify parent with coordinates if available
+    onSelect?.({
+      address: item.address,
+      coordinates: item.coordinates || { lat: 0, lng: 0 },
+    })
+    
+    setShowHistoryDropdown(false)
+    setShowDropdown(false)
+    
+    // Set flag to prevent autocomplete from opening on focus
+    setJustSelectedFromHistory(true)
+    
+    // Reset the flag after a short delay (in case user clicks elsewhere then back)
+    setTimeout(() => {
+      setJustSelectedFromHistory(false)
+    }, 500)
   }
 
   // Handle "Use Current Location" button click
@@ -141,8 +208,8 @@ export function AutocompleteInput({
 
       const { latitude, longitude } = position.coords
 
-      // Set display text to "Current Location"
-      handleInputChange('Current Location')
+      // Set display text to "Current Location" (skip autocomplete)
+      handleInputChange('Current Location', true)
       onChange?.('Current Location')
 
       // Notify parent with coordinates
@@ -162,6 +229,15 @@ export function AutocompleteInput({
       })
 
       setShowDropdown(false)
+      setShowHistoryDropdown(false)
+      
+      // Set flag to prevent autocomplete from opening on focus
+      setJustSelectedFromHistory(true)
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        setJustSelectedFromHistory(false)
+      }, 500)
     } catch (error: unknown) {
       console.error('Error getting location:', error)
 
@@ -206,7 +282,7 @@ export function AutocompleteInput({
           value={input}
           onChange={onInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => predictions.length > 0 && setShowDropdown(true)}
+          onFocus={onInputFocus}
           placeholder=" "
           className={`
             peer w-full border border-neutral-300 pb-4 pt-12
@@ -337,8 +413,100 @@ export function AutocompleteInput({
         </div>
       )}
 
+      {/* History/Location Dropdown (shown when input is empty and focused) */}
+      {showHistoryDropdown && !input && (
+        <div
+          ref={dropdownRef}
+          className="absolute z-9999 mt-2 w-full rounded-sm border border-neutral-200 bg-white shadow-lg"
+        >
+          {/* Current Location Option - Always on top */}
+          {showLocationButton && (
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={isGettingLocation}
+              className="w-full px-4 py-3 text-left text-sm text-neutral-950 transition hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none disabled:opacity-50"
+            >
+              <div className="flex items-start gap-3">
+                {/* Location crosshair icon */}
+                <svg
+                  className="mt-0.5 h-5 w-5 shrink-0 text-neutral-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+
+                {/* Text */}
+                <div className="flex-1">
+                  <div className="font-medium text-neutral-950">
+                    {isGettingLocation ? 'Getting location...' : 'Use current location'}
+                  </div>
+                </div>
+              </div>
+            </button>
+          )}
+
+          {searchHistory.length > 0 && (
+            <>
+              <div className="border-t border-neutral-100" />
+              <div className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                Recently searched
+              </div>
+              <ul className="max-h-60 overflow-y-auto">
+                {searchHistory.map((item, index) => (
+                  <li key={`${item.address}-${index}`}>
+                    <button
+                      type="button"
+                      onClick={() => onHistorySelect(item)}
+                      className="w-full px-4 py-3 text-left text-sm text-neutral-950 transition hover:bg-neutral-50 focus:bg-neutral-50 focus:outline-none"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Clock icon for history */}
+                        <svg
+                          className="mt-0.5 h-5 w-5 shrink-0 text-neutral-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+
+                        {/* Address text */}
+                        <div className="flex-1">
+                          <div className="font-medium text-neutral-950">
+                            {item.address}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Dropdown with predictions */}
-      {showDropdown && predictions.length > 0 && (
+      {showDropdown && predictions.length > 0 && !showHistoryDropdown && (
         <div
           ref={dropdownRef}
           className="absolute z-9999 mt-2 w-full rounded-sm border border-neutral-200 bg-white shadow-lg"

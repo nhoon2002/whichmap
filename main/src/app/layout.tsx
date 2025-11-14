@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: '%s - WhichMap',
     default: 'WhichMap - Compare Travel Times Across Map Providers',
   },
-  description: 'Compare travel times across Google Maps, Apple Maps, and Waze on a single screen.',
+  description: 'Compare travel times across popular navigation platforms.',
 }
 
 interface RootLayoutProps {

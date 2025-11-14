@@ -9,13 +9,18 @@ import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
 import { filterRoutes, findFastestRoute, generateDeepLink } from '@/lib/routeHelpers'
+import { addToSearchHistory } from '@/services/searchHistory/searchHistoryService'
+import { createTrackingEvent, storeTrackingCode, trackProviderClick, getCurrentTrackingCode } from '@/services/tracking/trackingService'
+import { onAuthChange } from '@/services/auth/authService'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
 import type { Location, Coordinates, Place } from '@/types'
+import type { User as FirebaseUser } from 'firebase/auth'
 
 export default function Home() {
   const [startLocation, setStartLocation] = useState('')
   const [endLocation, setEndLocation] = useState('')
+  const [user, setUser] = useState<FirebaseUser | null>(null)
 
   // Store geocoded coordinates
   const [startCoordinates, setStartCoordinates] = useState<Coordinates | null>(null)
@@ -44,16 +49,28 @@ export default function Home() {
     initGlobalHelpers()
   }, [])
 
-  // Smooth scroll to results when they appear
+  // Listen to auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
+      setUser(currentUser)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  // Smooth scroll to results when they appear (mobile only)
   useEffect(() => {
     if (results && results.length > 0 && resultsRef.current) {
-      // Wait for fade animation to complete (500ms) before scrolling
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        })
-      }, 600)
+      // Only scroll on mobile (below lg breakpoint)
+      const isMobile = window.innerWidth < 1024
+      if (isMobile) {
+        // Wait for fade animation to complete (500ms) before scrolling
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }, 600)
+      }
     }
   }, [results])
 
@@ -73,135 +90,225 @@ export default function Home() {
 
     setSubmittedStart(startData)
     setSubmittedEnd(endData)
+
+    // Save to search history (Firestore for logged-in users, localStorage for anonymous)
+    await addToSearchHistory(start, user?.uid || null, startCoordinates || undefined, 'origin')
+    await addToSearchHistory(end, user?.uid || null, endCoordinates || undefined, 'destination')
   }
+
+  // Create tracking event when results load
+  useEffect(() => {
+    if (results && results.length > 0 && submittedStart && submittedEnd) {
+      const createTracking = async () => {
+        try {
+          // Extract addresses for tracking
+          const origin = typeof submittedStart === 'string' ? submittedStart : startLocation
+          const dest = typeof submittedEnd === 'string' ? submittedEnd : endLocation
+          
+          const trackingCode = await createTrackingEvent(
+            user?.uid || null,
+            origin,
+            dest,
+            startCoordinates || undefined,
+            endCoordinates || undefined,
+            results
+          )
+          
+          // Store for later when user clicks a provider
+          storeTrackingCode(trackingCode)
+        } catch (error) {
+          console.error('Error creating tracking event:', error)
+        }
+      }
+      
+      createTracking()
+    }
+  }, [results, submittedStart, submittedEnd, user, startLocation, endLocation, startCoordinates, endCoordinates])
 
   // Filter and deduplicate results based on user preferences
   const filteredResults = filterRoutes(results, preferences)
   const fastest = findFastestRoute(filteredResults)
 
   return (
-    <main className="flex-auto">
-      <Container className="mt-24 sm:mt-32 lg:mt-40">
-        <FadeIn animate>
-          <div className="max-w-2xl">
-            <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950 sm:text-7xl">
-              WhichMap
-            </h1>
-            <p className="mt-6 text-xl text-neutral-600">
-              Compare travel times across Google Maps, Apple Maps, and Waze on a single screen.
-            </p>
-          </div>
-        </FadeIn>
-
-        <FadeIn animate className="mt-16">
-          <form onSubmit={handleSubmit}>
-            <div className="relative -space-y-px rounded-2xl bg-white">
-              <AutocompleteInput
-                label="Starting Location"
-                value={startLocation}
-                onChange={(value) => setStartLocation(value)}
-                onSelect={(place: Place) => {
-                  setStartLocation(place.address)
-                  setStartCoordinates(place.coordinates)
-                }}
-                autoComplete="off"
-                className="rounded-t-2xl"
-              />
-              <AutocompleteInput
-                label="Destination"
-                value={endLocation}
-                onChange={(value) => setEndLocation(value)}
-                onSelect={(place: Place) => {
-                  setEndLocation(place.address)
-                  setEndCoordinates(place.coordinates)
-                }}
-                autoComplete="off"
-                className="rounded-b-2xl"
-              />
-            </div>
-
-            {queryError && (
-              <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-                {queryError.message || 'Failed to fetch route data. Please try again.'}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="relative z-0 mt-10"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Comparing routes...' : 'Compare Routes'}
-            </Button>
-          </form>
-        </FadeIn>
-
-        {isLoading && (
-          <FadeIn animate className="mt-24">
-            <div className="text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-neutral-950 border-r-transparent"></div>
-              <p className="mt-4 text-lg text-neutral-600">Loading route comparisons...</p>
-            </div>
-          </FadeIn>
-        )}
-
-        {!isLoading && filteredResults.length > 0 && (
-          <div ref={resultsRef} className="mt-24 sm:mt-32">
+    <main className="flex-auto flex flex-col">
+      <Container className="mt-16 sm:mt-20 lg:mt-12 flex-1">
+        {/* Mobile: Stack vertically, Desktop: Split 50/50 */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-16 xl:gap-20 lg:min-h-[calc(100vh-8rem)]">
+          {/* Left side: Form and Header */}
+          <div className="lg:sticky lg:top-12 lg:self-start lg:max-w-xl">
             <FadeIn animate>
-              <h2 className="font-display text-2xl font-semibold text-neutral-950">
-                Results
-              </h2>
-            </FadeIn>
-
-            <FadeInStagger className="mt-10">
-              <dl className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredResults.map((result) => (
-                  <ProviderCard
-                    key={result.id}
-                    provider={result.provider}
-                    eta={result.eta}
-                    distance={result.distance}
-                    unit={result.unit}
-                    isFastest={fastest ? result.id === fastest.id : false}
-                    link={result.link || generateDeepLink(result.id, submittedStart!, submittedEnd!)}
-                  />
-                ))}
-              </dl>
-            </FadeInStagger>
-          </div>
-        )}
-
-        {/* Show message when all services are disabled */}
-        {!isLoading && results && results.length > 0 && filteredResults.length === 0 && (
-          <div className="mt-24 sm:mt-32">
-            <FadeIn animate>
-              <div className="rounded-lg bg-neutral-50 px-6 py-8 text-center">
-                <p className="text-lg text-neutral-600">
-                  All navigation services are disabled. Enable at least one service in Settings to see results.
+              <div>
+                <h1 className="font-display text-3xl font-medium tracking-tight text-neutral-950 sm:text-4xl lg:text-4xl">
+                  Compare routes. Choose smarter.
+                </h1>
+                <p className="mt-4 text-base text-neutral-600 sm:text-lg">
+                  Compare travel times across popular navigation platforms.
                 </p>
               </div>
             </FadeIn>
-          </div>
-        )}
 
-        {/* Footer */}
-        <div className="mt-32 border-t border-neutral-200 pt-10 pb-16">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <p className="text-sm text-neutral-500">
-              Enjoying WhichMap? Support the project
-            </p>
-            <a
-              href="https://buymeacoffee.com/whichmap"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-amber-500"
-            >
-              <span>☕</span>
-              Buy Me a Coffee
-            </a>
+            <FadeIn animate className="mt-10 sm:mt-12">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="relative -space-y-px rounded-2xl bg-white shadow-sm">
+                  <AutocompleteInput
+                    label="Starting Location"
+                    value={startLocation}
+                    onChange={(value) => setStartLocation(value)}
+                    onSelect={(place: Place) => {
+                      setStartLocation(place.address)
+                      setStartCoordinates(place.coordinates)
+                    }}
+                    autoComplete="off"
+                    className="rounded-t-2xl"
+                    userId={user?.uid || null}
+                  />
+                  <AutocompleteInput
+                    label="Destination"
+                    value={endLocation}
+                    onChange={(value) => setEndLocation(value)}
+                    onSelect={(place: Place) => {
+                      setEndLocation(place.address)
+                      setEndCoordinates(place.coordinates)
+                    }}
+                    autoComplete="off"
+                    className="rounded-b-2xl"
+                    userId={user?.uid || null}
+                  />
+                </div>
+
+                {queryError && (
+                  <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                    {queryError.message || 'Failed to fetch route data. Please try again.'}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || !startLocation.trim() || !endLocation.trim()}
+                >
+                  {isLoading ? 'Comparing routes' : 'Compare Routes'}
+                </Button>
+              </form>
+            </FadeIn>
+          </div>
+
+          {/* Right side: Results */}
+          <div ref={resultsRef} className="mt-20 lg:mt-0">
+            {isLoading && (
+              <FadeIn animate>
+                <div className="flex h-full min-h-[400px] items-center justify-center">
+                  <div className="text-center">
+                    <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-neutral-950 border-r-transparent"></div>
+                    <p className="mt-6 text-base text-neutral-600">Comparing routes...</p>
+                  </div>
+                </div>
+              </FadeIn>
+            )}
+
+            {!isLoading && filteredResults.length > 0 && (
+              <div className="space-y-6">
+                <FadeIn animate>
+                  <h2 className="font-display text-2xl font-semibold text-neutral-950 sm:text-3xl">
+                    Results
+                  </h2>
+                </FadeIn>
+
+                <FadeInStagger className="space-y-3">
+                  {filteredResults.map((result) => (
+                    <ProviderCard
+                      key={result.id}
+                      provider={result.provider}
+                      eta={result.eta}
+                      distance={result.distance}
+                      unit={result.unit}
+                      isFastest={fastest ? result.id === fastest.id : false}
+                      link={result.link || generateDeepLink(result.id, submittedStart!, submittedEnd!)}
+                    />
+                  ))}
+                </FadeInStagger>
+              </div>
+            )}
+
+            {/* Show message when all services are disabled */}
+            {!isLoading && results && results.length > 0 && filteredResults.length === 0 && (
+              <FadeIn animate>
+                <div className="rounded-xl bg-neutral-50 px-6 py-8 text-center">
+                  <p className="text-base text-neutral-600">
+                    All navigation services are disabled. Enable at least one service in Settings to see results.
+                  </p>
+                </div>
+              </FadeIn>
+            )}
+
+            {/* Empty state for desktop */}
+            {!isLoading && !results && (
+              <FadeIn animate>
+                <div className="hidden lg:flex h-full min-h-[400px] items-center justify-center">
+                  <div className="text-center max-w-md px-8">
+                    {/* Minimal map marker icon */}
+                    <div className="mb-6 flex justify-center">
+                      <svg
+                        className="h-32 w-32 text-neutral-200"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={0.75}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={0.75}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-neutral-950 mb-2">
+                      Ready to compare routes
+                    </h3>
+                    <p className="text-sm text-neutral-500 leading-relaxed">
+                      Enter your starting location and destination to see real-time travel times from all providers
+                    </p>
+                  </div>
+                </div>
+              </FadeIn>
+            )}
           </div>
         </div>
       </Container>
+
+      {/* Footer */}
+      <footer className="mt-auto border-t border-neutral-200 pt-12 pb-8">
+        <Container>
+          <div className="flex flex-col items-center gap-8">
+            {/* Coffee Support */}
+            <div className="flex flex-col items-center gap-3 text-center">
+              <p className="text-sm text-neutral-600">
+                Enjoying WhichMap? Support the project
+              </p>
+              <a
+                href="https://buymeacoffee.com/whichmap"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-neutral-900 transition-all hover:bg-amber-500 hover:shadow-md hover:scale-105"
+              >
+                <span className="text-base">☕</span>
+                Buy Me a Coffee
+              </a>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-center text-sm text-neutral-500">
+              <p>© {new Date().getFullYear()} WhichMap. All rights reserved.</p>
+            </div>
+          </div>
+        </Container>
+      </footer>
     </main>
   )
 }
