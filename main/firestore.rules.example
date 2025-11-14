@@ -23,14 +23,12 @@ service cloud.firestore {
       // Anyone can create tracking events (including anonymous users)
       allow create: if true;
       
+      // Allow reading to query by trackingCode (needed for click tracking)
+      allow read: if true;
+      
       // Allow updates to add click tracking (providerClicked, clickTimestamp)
       // This allows updating the document to track which provider was clicked
       allow update: if true;
-      
-      // Only admins can read (for analytics/commission reports)
-      // Remove this rule if you don't have admin role system yet
-      // allow read: if request.auth != null && 
-      //                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     // Deny all other access

@@ -74,6 +74,28 @@ export default function Home() {
     }
   }, [results])
 
+  // Check if start and end locations are the same
+  const areSameLocation = (): boolean => {
+    const start = startLocation.trim()
+    const end = endLocation.trim()
+    
+    if (!start || !end) return false
+    
+    // Compare by coordinates if both are available
+    if (startCoordinates && endCoordinates) {
+      const latDiff = Math.abs(startCoordinates.lat - endCoordinates.lat)
+      const lngDiff = Math.abs(startCoordinates.lng - endCoordinates.lng)
+      // Consider same if within ~10 meters (0.0001 degrees ≈ 11 meters)
+      return latDiff < 0.0001 && lngDiff < 0.0001
+    }
+    
+    // Compare by address text (case-insensitive, normalized)
+    const normalizeAddress = (addr: string) => 
+      addr.toLowerCase().replace(/\s+/g, ' ').trim()
+    
+    return normalizeAddress(start) === normalizeAddress(end)
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -182,10 +204,16 @@ export default function Home() {
                   </div>
                 )}
 
+                {areSameLocation() && startLocation.trim() && endLocation.trim() && (
+                  <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+                    Start and destination are the same location. Please enter different addresses.
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoading || !startLocation.trim() || !endLocation.trim()}
+                  disabled={isLoading || !startLocation.trim() || !endLocation.trim() || areSameLocation()}
                 >
                   {isLoading ? 'Comparing routes' : 'Compare Routes'}
                 </Button>
