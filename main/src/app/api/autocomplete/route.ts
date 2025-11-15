@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
     const params = new URLSearchParams({
       input,
       key: apiKey,
-      // Optional: restrict to addresses only (not businesses)
-      types: 'address',
-      // Optional: bias results to US (remove or change as needed)
+      // Note: Removed 'types' restriction to allow all place types (addresses, establishments, airports, etc.)
+      // This enables predictions like "LAX" → "Los Angeles International Airport, 1 World Way..."
+      // Restricted to US only
       components: 'country:us',
     })
 
@@ -82,9 +82,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Map predictions to include both snake_case and camelCase for convenience
+    const mappedPredictions = (data.predictions || []).map(pred => ({
+      ...pred,
+      placeId: pred.place_id,
+      mainText: pred.structured_formatting?.main_text,
+      secondaryText: pred.structured_formatting?.secondary_text,
+    }))
+
     // Return predictions
     return NextResponse.json({
-      predictions: data.predictions || [],
+      predictions: mappedPredictions,
     })
   } catch (error) {
     console.error('Autocomplete API route error:', error)
