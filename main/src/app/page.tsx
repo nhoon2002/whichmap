@@ -26,6 +26,10 @@ export default function Home() {
   const [startCoordinates, setStartCoordinates] = useState<Coordinates | null>(null)
   const [endCoordinates, setEndCoordinates] = useState<Coordinates | null>(null)
 
+  // Store full formatted addresses (for tracking)
+  const [startFullAddress, setStartFullAddress] = useState<string>('')
+  const [endFullAddress, setEndFullAddress] = useState<string>('')
+
   // Store SUBMITTED values (only updated when button is clicked)
   const [submittedStart, setSubmittedStart] = useState<Location | null>(null)
   const [submittedEnd, setSubmittedEnd] = useState<Location | null>(null)
@@ -123,9 +127,9 @@ export default function Home() {
     if (results && results.length > 0 && submittedStart && submittedEnd) {
       const createTracking = async () => {
         try {
-          // Extract addresses for tracking
-          const origin = typeof submittedStart === 'string' ? submittedStart : startLocation
-          const dest = typeof submittedEnd === 'string' ? submittedEnd : endLocation
+          // Use full formatted addresses if available, otherwise fall back to current input
+          const origin = startFullAddress || startLocation
+          const dest = endFullAddress || endLocation
           
           const trackingCode = await createTrackingEvent(
             user?.uid || null,
@@ -145,7 +149,7 @@ export default function Home() {
       
       createTracking()
     }
-  }, [results, submittedStart, submittedEnd, user, startLocation, endLocation, startCoordinates, endCoordinates])
+  }, [results, submittedStart, submittedEnd, user, startFullAddress, endFullAddress, startLocation, endLocation, startCoordinates, endCoordinates])
 
   // Filter and deduplicate results based on user preferences
   const filteredResults = filterRoutes(results, preferences)
@@ -175,10 +179,15 @@ export default function Home() {
                   <AutocompleteInput
                     label="Starting Location"
                     value={startLocation}
-                    onChange={(value) => setStartLocation(value)}
+                    onChange={(value) => {
+                      setStartLocation(value)
+                      // Clear full address when user manually types
+                      if (!value) setStartFullAddress('')
+                    }}
                     onSelect={(place: Place) => {
                       setStartLocation(place.address)
                       setStartCoordinates(place.coordinates)
+                      setStartFullAddress(place.address) // Store full formatted address
                     }}
                     autoComplete="off"
                     className="rounded-t-2xl"
@@ -187,10 +196,15 @@ export default function Home() {
                   <AutocompleteInput
                     label="Destination"
                     value={endLocation}
-                    onChange={(value) => setEndLocation(value)}
+                    onChange={(value) => {
+                      setEndLocation(value)
+                      // Clear full address when user manually types
+                      if (!value) setEndFullAddress('')
+                    }}
                     onSelect={(place: Place) => {
                       setEndLocation(place.address)
                       setEndCoordinates(place.coordinates)
+                      setEndFullAddress(place.address) // Store full formatted address
                     }}
                     autoComplete="off"
                     className="rounded-b-2xl"
