@@ -11,7 +11,7 @@ export default function SupportPage() {
   return (
     <main className="flex-auto">
       <Container className="mt-24 sm:mt-32 lg:mt-40 mb-24">
-        <FadeIn>
+        <FadeIn animate>
           <div className="max-w-2xl mx-auto">
             <h1 className="font-display text-4xl font-medium tracking-tight text-neutral-950 sm:text-5xl">
               Support
