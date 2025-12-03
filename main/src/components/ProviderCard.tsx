@@ -5,6 +5,7 @@ import Image from 'next/image'
 import clsx from 'clsx'
 import { openMapLink } from '@/lib/deeplinkHelpers'
 import { trackProviderClick, getCurrentTrackingCode } from '@/services/tracking/trackingService'
+import { hapticMedium } from '@/lib/capacitor'
 import type { ProviderCardProps } from '@/types'
 
 /**
@@ -71,6 +72,9 @@ export function ProviderCard({
 }: ProviderCardProps) {
   const handleOpenMap = async (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault()
+    
+    // Trigger haptic feedback for native app
+    await hapticMedium()
     
     // Track the click for commission attribution
     const trackingCode = getCurrentTrackingCode()

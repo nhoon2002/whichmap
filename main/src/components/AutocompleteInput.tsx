@@ -284,6 +284,9 @@ export function AutocompleteInput({
           onKeyDown={handleKeyDown}
           onFocus={onInputFocus}
           placeholder=" "
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           className={`
             peer w-full border border-neutral-300 pb-4 pt-12
             text-base/6 text-neutral-950 ring-4 ring-transparent

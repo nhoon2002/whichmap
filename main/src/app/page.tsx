@@ -9,6 +9,7 @@ import { Button } from '@/components/Button'
 import { ProviderCard } from '@/components/ProviderCard'
 import { initGlobalHelpers } from '@/lib/helpers'
 import { filterRoutes, findFastestRoute, generateDeepLink } from '@/lib/routeHelpers'
+import { ShareButton } from '@/components/ShareButton'
 import { addToSearchHistory } from '@/services/searchHistory/searchHistoryService'
 import { createTrackingEvent, storeTrackingCode, trackProviderClick, getCurrentTrackingCode } from '@/services/tracking/trackingService'
 import { onAuthChange } from '@/services/auth/authService'
@@ -251,9 +252,17 @@ export default function Home() {
             {!isLoading && filteredResults.length > 0 && (
               <div className="space-y-6">
                 <FadeIn animate>
-                  <h2 className="font-display text-2xl font-semibold text-neutral-950 sm:text-3xl">
-                    Results
-                  </h2>
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-display text-2xl font-semibold text-neutral-950 sm:text-3xl">
+                      Results
+                    </h2>
+                    <ShareButton
+                      origin={startLocation}
+                      destination={endLocation}
+                      fastestProvider={fastest?.provider}
+                      fastestTime={fastest ? `${fastest.eta} ${fastest.unit}` : undefined}
+                    />
+                  </div>
                 </FadeIn>
 
                 <FadeInStagger className="space-y-3">
@@ -325,10 +334,32 @@ export default function Home() {
       </Container>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-neutral-200 pt-12 pb-8">
+      <footer className="mt-auto border-t border-neutral-200 pt-8 pb-8">
         <Container>
-          <div className="flex flex-col items-center gap-8">
-            {/* Coffee Support */}
+          <div className="flex flex-col items-center gap-6">
+            {/* Footer Links */}
+            <div className="flex items-center gap-6">
+              <a
+                href="/support"
+                className="text-sm text-neutral-600 hover:text-neutral-950 transition"
+              >
+                Support
+              </a>
+              <span className="text-neutral-300">•</span>
+              <a
+                href="/privacy"
+                className="text-sm text-neutral-600 hover:text-neutral-950 transition"
+              >
+                Privacy Policy
+              </a>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-center text-sm text-neutral-500">
+              <p>© {new Date().getFullYear()} WhichMap. All rights reserved.</p>
+            </div>
+
+            {/* Coffee Support - Temporarily hidden
             <div className="flex flex-col items-center gap-3 text-center">
               <p className="text-sm text-neutral-600">
                 Enjoying WhichMap? Support the project
@@ -343,11 +374,7 @@ export default function Home() {
                 Buy Me a Coffee
               </a>
             </div>
-
-            {/* Copyright */}
-            <div className="text-center text-sm text-neutral-500">
-              <p>© {new Date().getFullYear()} WhichMap. All rights reserved.</p>
-            </div>
+            */}
           </div>
         </Container>
       </footer>
