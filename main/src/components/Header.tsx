@@ -32,9 +32,9 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
       <Container>
-        <nav className="flex items-center justify-between py-4 sm:py-6">
+        <nav className="flex items-center justify-between py-3 sm:py-6">
           {/* Logo/Brand */}
           <Link href="/" className="font-display text-2xl font-semibold text-neutral-950">
             WhichMap
