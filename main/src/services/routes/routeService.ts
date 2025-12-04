@@ -99,8 +99,8 @@ export async function compareRoutes(
   // Fetch all routes in parallel
   const results = await Promise.all(requests)
 
-  // Filter out failed requests and flatten all routes
-  // Note: Google returns multiple alternatives (we keep them all for future use)
+  // Filter out failed requests and flatten routes
+  // Each provider returns only their fastest route
   return results
     .filter(result => !result.error)
     .flatMap(result => result.routes)

@@ -17,18 +17,28 @@ service cloud.firestore {
       allow update: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Tracking Events Collection (for commission attribution)
-    // Write-only for users, read for admins only
+    // Tracking Events Collection (search events for analytics)
     match /tracking_events/{eventId} {
       // Anyone can create tracking events (including anonymous users)
       allow create: if true;
       
-      // Allow reading to query by trackingCode (needed for click tracking)
+      // Read access for analytics (restrict to admin in production)
       allow read: if true;
       
-      // Allow updates to add click tracking (providerClicked, clickTimestamp)
-      // This allows updating the document to track which provider was clicked
-      allow update: if true;
+      // No updates needed - events are immutable
+      allow update: if false;
+    }
+    
+    // Tracking Clicks Collection (click events for commission attribution)
+    match /tracking_clicks/{clickId} {
+      // Anyone can create click events (including anonymous users)
+      allow create: if true;
+      
+      // Read access for analytics (restrict to admin in production)
+      allow read: if true;
+      
+      // No updates or deletes - clicks are immutable
+      allow update, delete: if false;
     }
     
     // Deny all other access

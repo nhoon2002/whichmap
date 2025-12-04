@@ -4,7 +4,7 @@ Compare travel times across multiple navigation providers on a single screen.
 
 ---
 
-## 📊 Project Overview
+## Project Overview
 
 **WhichMap** compares travel times across Google Maps, Apple Maps, Waze, and other navigation providers. Users enter start and destination locations, and the app displays estimated travel times from all providers side-by-side, highlighting the fastest route.
 
@@ -12,7 +12,7 @@ Compare travel times across multiple navigation providers on a single screen.
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 - **Next.js 16.0.1** (App Router, Turbopack)
 - **React 19.2.0**
@@ -21,61 +21,48 @@ Compare travel times across multiple navigation providers on a single screen.
 - **Firebase v12.5.0** (Authentication + Firestore)
 - **React Query v5** (API caching)
 - **@googlemaps/routing v2** (Google Maps Routes API)
+- **Zod v4** (input validation)
 - **Node.js 20.9.0+** required
 
 ---
 
-## ✅ Current Status
+## Current Status
 
 ### Implemented Features
 
 **Core UI**
-- ✅ Floating label form inputs with Google Places Autocomplete
-- ✅ Provider result cards with fastest route highlighting (Uber-style design)
-- ✅ Split-screen layout (desktop: inputs left, results right)
-- ✅ Loading states and error handling
-- ✅ Smooth scroll animations (Framer Motion)
-- ✅ Search history with "Use current location" feature
-- ✅ Official app icons (Google Maps, Apple Maps, Waze)
+- Floating label form inputs with Google Places Autocomplete
+- Provider result cards with fastest route highlighting (Uber-style design)
+- Split-screen layout (desktop: inputs left, results right)
+- Loading states and error handling
+- Smooth scroll animations (Framer Motion)
+- Search history with "Use current location" feature
+- Official app icons (Google Maps, Apple Maps, Waze)
 
 **Infrastructure**
-- ✅ Firebase Authentication (email/password + Google OAuth)
-- ✅ User preferences system (Firestore)
-- ✅ Search history (localStorage for anonymous, Firestore for logged-in)
-- ✅ Commission tracking system (UTM attribution, click tracking)
-- ✅ API route architecture (`/api/compare`)
-- ✅ Rate limiting (10 req/min per IP)
-- ✅ Input validation (Zod schemas)
+- Firebase Authentication (email/password + Google OAuth)
+- User preferences system (Firestore)
+- Search history (localStorage for anonymous, Firestore for logged-in)
+- Commission tracking system (UTM attribution, click tracking)
+- API route architecture (`/api/compare`)
+- Rate limiting (10 req/min per IP)
+- Input validation (Zod schemas)
 
 **Navigation Providers**
-- ✅ **Google Maps** - Routes API v2 with traffic-aware routing
-- ✅ **Apple Maps** - Server API integration (ETA only)
-- ⏳ **Waze** - Transport SDK integration pending approval
-- 🔮 **More providers** - TMAP, KAKAO, Yandex, etc. (planned)
+- **Google Maps** - Routes API v2 with traffic-aware routing
+- **Apple Maps** - Server API integration (ETA only)
+- **Waze** - Universal links (no public API)
 
 **API Integration**
-- ✅ Google Geocoding API (server-side)
-- ✅ Google Places Autocomplete (debounced)
-- ✅ Service layer architecture
-- ✅ React Query caching (5 min)
-- ✅ Universal links for all providers
-
-### Architecture Decisions
-
-**State Management:**
-- Form state → `useState`
-- API caching → React Query
-- User data → Firebase/Firestore
-- Preferences → **Client-side filtering only** (no API refetch on toggle)
-
-**Key Pattern:**
-- Button click → API fetches ALL providers
-- Toggle preference → Filter results client-side (no refetch)
-- Clean separation: data fetching vs. data filtering
+- Google Geocoding API (server-side)
+- Google Places Autocomplete (debounced)
+- Service layer architecture
+- React Query caching (5 min)
+- Universal links for all providers
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 main/src/
@@ -121,7 +108,7 @@ main/src/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -186,57 +173,162 @@ npm run lint     # Run linter
 
 ---
 
-## 🔑 Key Implementation Notes
+## Firebase Setup
+
+### Firestore Collections
+
+The app uses two Firestore collections:
+
+#### `search_history` Collection
+
+Stores user search history (logged-in users only; anonymous users use localStorage).
+
+```typescript
+{
+  userId: string          // Firebase Auth UID
+  address: string         // Search address
+  coordinates?: {         // Optional geocoded coordinates
+    lat: number
+    lng: number
+  }
+  searchType: 'origin' | 'destination'
+  timestamp: Timestamp
+}
+```
+
+**Behavior:**
+- Displays last 5 searches per user
+- Retains last 50 searches for analytics
+- Falls back to localStorage if Firestore fails
+
+#### `tracking_events` Collection
+
+Tracks user searches (one document per search).
+
+```typescript
+{
+  trackingCode: string        // Unique: "wm_1234567890_abc123xyz"
+  userId: string | null       // Logged-in user or null (anonymous)
+  sessionId: string           // Persistent browser session (localStorage)
+  
+  // Search Details
+  origin: string
+  originCoords?: { lat: number, lng: number }
+  destination: string  
+  destCoords?: { lat: number, lng: number }
+  
+  // Results Shown
+  providers: [{
+    id: 'google' | 'apple' | 'waze'
+    name: string
+    eta: number
+    distance: string
+    isFastest: boolean
+  }]
+  
+  // Attribution
+  referralSource?: string
+  utmParams?: {
+    source?: string
+    medium?: string
+    campaign?: string
+    content?: string
+  }
+  
+  // Device Info
+  device: {
+    screenWidth: number
+    screenHeight: number
+    hasTouch: boolean
+    platform: string
+    language: string
+  }
+  
+  // Metadata
+  createdAt: Timestamp
+}
+```
+
+#### `tracking_clicks` Collection
+
+Tracks provider clicks (one document per click). Separate from events for easier analytics.
+
+```typescript
+{
+  trackingCode: string        // Links to parent tracking_events document
+  sessionId: string           // Denormalized for easier queries
+  userId: string | null       // Denormalized for easier queries
+  providerId: string          // 'google', 'apple', or 'waze'
+  createdAt: Timestamp
+}
+```
+
+### Required Indexes
+
+Create these composite indexes in Firebase Console → Firestore → Indexes:
+
+1. **Search History Query**
+   - Collection: `search_history`
+   - Fields: `userId` (Ascending), `timestamp` (Descending)
+
+2. **User Tracking Events**
+   - Collection: `tracking_events`
+   - Fields: `userId` (Ascending), `createdAt` (Descending)
+
+3. **Session Tracking Events**
+   - Collection: `tracking_events`
+   - Fields: `sessionId` (Ascending), `createdAt` (Descending)
+
+4. **Clicks by Provider**
+   - Collection: `tracking_clicks`
+   - Fields: `providerId` (Ascending), `createdAt` (Descending)
+
+5. **Clicks by User**
+   - Collection: `tracking_clicks`
+   - Fields: `userId` (Ascending), `createdAt` (Descending)
+
+6. **Clicks by Session**
+   - Collection: `tracking_clicks`
+   - Fields: `sessionId` (Ascending), `createdAt` (Descending)
+
+### Security Rules
+
+Copy rules from `firestore.rules.example` to Firebase Console → Firestore → Rules.
+
+---
+
+## Key Implementation Notes
 
 ### Google Maps Routes API v2
 
 - Uses official `@googlemaps/routing` SDK
 - Traffic-aware routing with multiple alternatives
 - ~4s response time (vs ~500ms for legacy Directions API)
-- Trade-off: Better accuracy and features for slower response
 
 ### Apple Maps Server API
 
 - Two-step authentication: JWT token → Access token → API calls
 - **Limitation:** Only returns ETA (distance + time), no route polylines
-- Useful for comparison but not detailed navigation
 
-### Waze Transport SDK
+### Commission Tracking
 
-- Pending app approval from Waze
-- Will provide ETA data similar to other providers
-- No public API; using official Transport SDK
+The tracking system attributes user searches and provider clicks:
+
+1. **On search:** Creates a tracking event with search details and results
+2. **On click:** Updates the event with the selected provider
+3. **Storage:** Tracking code stored in sessionStorage for click attribution
+
+### Search History
+
+- **Logged-in users:** Firestore (syncs across devices)
+- **Anonymous users:** localStorage (device-only)
+- Automatic fallback if Firestore fails
 
 ### User Preferences
 
 - Stored in Firestore (`users/{uid}/preferences`)
 - Syncs across devices when logged in
-- **Important:** Preferences filter results client-side only (no API refetch)
-- Structure:
-  ```javascript
-  {
-    navServices: {
-      google: true,
-      apple: true,
-      waze: false
-    }
-  }
-  ```
-
-### Rate Limiting
-
-- Currently: In-memory (10 req/min per IP)
-- **Production TODO:** Switch to Upstash Redis for serverless compatibility
-
-### Validation
-
-- Zod schemas for all API inputs
-- Accepts both address strings and coordinate objects:
-  ```javascript
-  // Both formats valid
-  { start: "123 Main St, LA", end: "456 Oak Ave, LA" }
-  { start: {lat: 34.05, lng: -118.24}, end: {lat: 34.06, lng: -118.25} }
-  ```
+- Preferences filter results client-side only (no API refetch)
 
 ### Universal Links
 
@@ -245,85 +337,9 @@ All providers use universal links (work on desktop and mobile):
 - **Apple Maps:** `https://maps.apple.com/?saddr=...&daddr=...`
 - **Waze:** `https://waze.com/ul?q=...&navigate=yes`
 
-Mobile: Opens native app if installed, otherwise web browser
-Desktop: Opens web interface
-
 ---
 
-## 📋 Roadmap
-
-### Phase 3 - Core Features ✅ COMPLETE
-- [x] Google Maps integration
-- [x] Apple Maps integration
-- [x] Search history (local + Firestore)
-- [x] Commission tracking system
-- [x] UTM campaign attribution
-- [x] Uber-style UI design
-- [ ] Waze Transport SDK (pending approval)
-- [ ] Production rate limiting (Upstash Redis)
-- [ ] Geocoding result caching
-
-### Phase 4 - Analytics & Monetization
-- [x] Commission tracking infrastructure
-- [ ] Admin dashboard for analytics
-- [ ] Revenue reporting
-- [ ] BigQuery export for advanced analytics
-- [ ] Negotiate commission deals with providers
-- [ ] API key authentication for external access
-
-### Phase 5 - International Expansion
-- [ ] TMAP (South Korea)
-- [ ] KAKAO Map (South Korea)
-- [ ] Yandex Maps (Russia)
-- [ ] Baidu Maps (China)
-- [ ] Additional regional providers
-
-### Phase 6 - Destination Discovery
-- [ ] Yelp business search near destination
-- [ ] Google Places integration
-- [ ] Side-by-side review comparison
-- [ ] Business matching algorithm
-- [ ] Save favorites feature
-
-### Phase 7 - Production Deployment
-- [ ] Production environment setup
-- [ ] Monitoring and error tracking
-- [ ] Performance optimization
-- [ ] Load testing
-
----
-
-## 🎨 Design System
-
-**Colors:**
-- Background: `bg-neutral-50`
-- Cards: `bg-white`
-- Text: `text-neutral-950` (primary), `text-neutral-600` (secondary)
-- Fastest highlight: `border-green-500`, `text-green-600`
-
-**Typography:**
-- Font: Mona Sans (variable font)
-- Headings: `font-display text-5xl sm:text-7xl`
-- Metrics: `text-3xl sm:text-4xl font-display font-semibold`
-
-**Spacing:**
-- Section spacing: `mt-24 sm:mt-32 lg:mt-40`
-- Grid gaps: `gap-10`
-
----
-
-## 🔐 Security
-
-- ✅ API keys server-side only
-- ✅ Input validation with Zod
-- ✅ Rate limiting per IP
-- ✅ Error sanitization (no internal details exposed)
-- ✅ Firebase Authentication
-- ⏳ API key authentication for `/api/compare` (TODO)
-
----
-
-## 📚 API Reference
+## API Reference
 
 ### POST /api/compare
 
@@ -363,37 +379,111 @@ Compare routes across all navigation providers.
 
 ---
 
-## 🤝 Contributing
+## Testing
+
+### Manual Test Flow
+
+1. Open `http://localhost:3000`
+2. Enter start and destination addresses
+3. Click "Compare Routes"
+4. Verify results appear with ETAs
+5. Click a provider card to open the map
+
+### Test Search History
+
+**Logged-in user:**
+1. Sign in
+2. Search for locations
+3. Clear input → see "Recently searched"
+4. Check Firestore console → verify documents
+
+**Anonymous user:**
+1. Sign out
+2. Search for locations
+3. Clear input → see "Recently searched"
+4. Check localStorage → verify saved data
+
+### Test Tracking
+
+1. Search for a route
+2. Click a provider card
+3. Check Firestore `tracking_events` → verify `providerClicked` is set
+
+### Test UTM Parameters
+
+Visit: `http://localhost:3000/?utm_source=google&utm_campaign=test`
+
+Tracking event should include UTM parameters.
+
+---
+
+## Troubleshooting
+
+### "Missing index" error
+Firebase will show a link in the error. Click it to auto-create the index.
+
+### Tracking code not found
+Check sessionStorage in browser DevTools for key: `whichmap_current_tracking_code`
+
+### Search history not appearing
+- Logged-in: Check Firestore `search_history` collection
+- Anonymous: Check localStorage key: `whichmap_search_history`
+
+---
+
+## Roadmap
+
+### Completed
+- [x] Google Maps integration
+- [x] Apple Maps integration
+- [x] Search history (local + Firestore)
+- [x] Commission tracking system
+- [x] UTM campaign attribution
+- [x] Uber-style UI design
+
+### In Progress
+- [ ] Admin dashboard for analytics
+- [ ] Production rate limiting (Upstash Redis)
+- [ ] Geocoding result caching
+
+### Planned
+- [ ] TMAP (South Korea)
+- [ ] KAKAO Map (South Korea)
+- [ ] Additional regional providers
+
+---
+
+## Security
+
+- API keys server-side only
+- Input validation with Zod
+- Rate limiting per IP
+- Error sanitization (no internal details exposed)
+- Firebase Authentication
+
+---
+
+## Documentation
+
+- **README.md** (this file) - Project overview and setup
+- **CLAUDE.md** - Development guide for AI assistants
+- **FIRESTORE_SETUP.md** - Firebase/Firestore configuration guide
+- **firestore.rules.example** - Security rules template
+
+---
+
+## Contributing
 
 This is a personal project. For major changes, please open an issue first.
 
 ---
 
-## 📄 License
+## License
 
 MIT © 2025 Nam Kim
 
 ---
 
-## 📚 Documentation
+## Support
 
-- **README.md** (this file) - Project overview and setup
-- **CLAUDE.md** - Development guide for AI assistants
-- **TRACKING_README.md** - Complete commission tracking system documentation
-- **FIRESTORE_SETUP.md** - Firebase/Firestore configuration guide
-- **SEARCH_HISTORY_IMPLEMENTATION.md** - Search history feature details
-- **firestore.rules.example** - Security rules template
-
----
-
-## 🔗 Links
-
-- **Live Demo:** Coming soon
-- **Buy Me a Coffee:** https://buymeacoffee.com/whichmap ☕
-- **Firebase Console:** https://console.firebase.google.com/project/whichmap-eb2aa
-
----
-
-## 📞 Support
-
-For questions or issues, open an issue on GitHub or reach out via the support link.
+For questions or issues, open an issue on GitHub.

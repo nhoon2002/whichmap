@@ -526,15 +526,11 @@ After comparing travel times, users can search for businesses near their destina
 ## Documentation
 
 - `CLAUDE.md` - This file, project overview and status for AI assistants
-- `README.md` - Main project documentation
-- `TRACKING_README.md` - Complete commission tracking system guide
+- `README.md` - Main project documentation (includes tracking system and search history)
 - `FIRESTORE_SETUP.md` - Firebase/Firestore setup and configuration
-- `SEARCH_HISTORY_IMPLEMENTATION.md` - Search history feature documentation
 - `firestore.rules.example` - Firestore security rules template
 - `docs/firebase-setup.md` - Complete Firebase authentication guide
 - `docs/api-usage.md` - API endpoint documentation with examples
-- `docs/v1-*.md` - TailwindCSS v1 template analysis
-- `docs/whichmap-implementation-guide.md` - Implementation roadmap
 
 ## Notes
 

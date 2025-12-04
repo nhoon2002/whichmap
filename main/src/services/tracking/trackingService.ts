@@ -6,17 +6,19 @@
 import { 
   collection, 
   addDoc, 
-  doc,
-  updateDoc,
-  query,
-  where,
-  limit,
-  getDocs,
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { RouteResult } from '@/types'
+
+export interface DeviceInfo {
+  screenWidth: number
+  screenHeight: number
+  hasTouch: boolean
+  platform: string
+  language: string
+}
 
 export interface TrackingEvent {
   trackingCode: string
@@ -29,7 +31,7 @@ export interface TrackingEvent {
   destination: string
   destCoords?: { lat: number; lng: number }
   
-  // Provider results
+  // Provider results shown to user
   providers: Array<{
     id: string
     name: string
@@ -37,10 +39,6 @@ export interface TrackingEvent {
     distance: string
     isFastest: boolean
   }>
-  
-  // User action (filled when user clicks)
-  providerClicked?: string
-  clickTimestamp?: Timestamp
   
   // Attribution
   referralSource?: string
@@ -53,44 +51,81 @@ export interface TrackingEvent {
   
   // Metadata
   createdAt: Timestamp
-  userAgent: string
-  deviceType?: 'mobile' | 'tablet' | 'desktop'
+  device: DeviceInfo
 }
 
-const COLLECTION_NAME = 'tracking_events'
-const SESSION_STORAGE_KEY = 'whichmap_session_id'
+/**
+ * Tracking click event - stored in separate collection for easy analytics
+ * Linked to TrackingEvent via trackingCode
+ */
+export interface TrackingClick {
+  trackingCode: string      // Links to parent TrackingEvent
+  sessionId: string         // Denormalized for easier queries
+  userId: string | null     // Denormalized for easier queries
+  providerId: string        // 'google' | 'apple' | 'waze'
+  createdAt: Timestamp
+}
+
+const EVENTS_COLLECTION = 'tracking_events'
+const CLICKS_COLLECTION = 'tracking_clicks'
+const SESSION_ID_KEY = 'whichmap_session_id'
+const TRACKING_CODE_KEY = 'whichmap_current_tracking_code'
 
 /**
  * Generate a unique tracking code
  */
 function generateTrackingCode(): string {
-  return `wm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `wm_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 }
 
 /**
- * Get or create session ID
+ * Get or create session ID (persists across browser sessions via localStorage)
  */
 function getSessionId(): string {
   if (typeof window === 'undefined') return 'server'
   
-  let sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY)
+  let sessionId = localStorage.getItem(SESSION_ID_KEY)
   if (!sessionId) {
-    sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId)
+    sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+    localStorage.setItem(SESSION_ID_KEY, sessionId)
   }
   return sessionId
 }
 
 /**
- * Get device type
+ * Get device information for analytics
+ * 
+ * Note on values:
+ * - screenWidth/Height: Physical screen dimensions (not browser window size)
+ *   These don't change when user resizes browser, but CAN be affected by
+ *   Chrome's responsive mode / device emulation during development.
+ * - hasTouch: True for touch-capable devices (phones, tablets, touch laptops)
+ *   Also true in Chrome responsive mode (emulates touch).
+ * - platform: OS identifier (e.g., 'MacIntel', 'iPhone', 'Linux x86_64', 'Win32')
+ *   This is NOT affected by Chrome responsive mode - shows actual device.
+ * - language: Browser language preference (e.g., 'en-US', 'ko-KR')
+ * 
+ * Detecting dev testing: A "MacIntel" platform with small screen + hasTouch
+ * is clearly Chrome responsive mode, not a real mobile device.
  */
-function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
-  if (typeof window === 'undefined') return 'desktop'
+function getDeviceInfo(): DeviceInfo {
+  if (typeof window === 'undefined') {
+    return {
+      screenWidth: 0,
+      screenHeight: 0,
+      hasTouch: false,
+      platform: 'server',
+      language: 'en',
+    }
+  }
   
-  const width = window.innerWidth
-  if (width < 768) return 'mobile'
-  if (width < 1024) return 'tablet'
-  return 'desktop'
+  return {
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    hasTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+    platform: navigator.platform || 'unknown',
+    language: navigator.language || 'en',
+  }
 }
 
 /**
@@ -160,7 +195,7 @@ export async function createTrackingEvent(
       ? Math.min(...results.map(r => r.eta))
       : null
     
-    const event: Record<string, any> = {
+    const event: Record<string, unknown> = {
       trackingCode,
       userId,
       sessionId: getSessionId(),
@@ -176,8 +211,7 @@ export async function createTrackingEvent(
         isFastest: fastestEta !== null && result.eta === fastestEta,
       })) || [],
       
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-      deviceType: getDeviceType(),
+      device: getDeviceInfo(),
       createdAt: serverTimestamp(),
     }
     
@@ -187,7 +221,7 @@ export async function createTrackingEvent(
     if (referralSource) event.referralSource = referralSource
     if (utmParams) event.utmParams = utmParams
     
-    await addDoc(collection(db, COLLECTION_NAME), event)
+    await addDoc(collection(db, EVENTS_COLLECTION), event)
     
     return trackingCode
   } catch (error) {
@@ -199,33 +233,32 @@ export async function createTrackingEvent(
 
 /**
  * Track when user clicks a provider link
+ * Creates a new document in tracking_clicks collection
  * This is the conversion event for commission tracking
+ * 
+ * @param trackingCode - Links this click to the parent search event
+ * @param providerId - Which provider was clicked ('google', 'apple', 'waze')
+ * @param userId - Optional user ID if logged in (for easier queries)
  */
 export async function trackProviderClick(
   trackingCode: string,
-  providerId: string
+  providerId: string,
+  userId: string | null = null
 ): Promise<void> {
   if (!trackingCode) return
   
   try {
-    // Find the tracking event by trackingCode
-    // Note: This requires a Firestore index on trackingCode
-    const eventsRef = collection(db, COLLECTION_NAME)
-    const q = query(
-      eventsRef,
-      where('trackingCode', '==', trackingCode),
-      limit(1)
-    )
-    
-    const snapshot = await getDocs(q)
-    
-    if (!snapshot.empty && snapshot.docs[0]) {
-      const docRef = doc(db, COLLECTION_NAME, snapshot.docs[0].id)
-      await updateDoc(docRef, {
-        providerClicked: providerId,
-        clickTimestamp: serverTimestamp(),
-      })
+    // Create a new click document in the clicks collection
+    // Denormalize sessionId and userId for easier queries
+    const clickEvent = {
+      trackingCode,
+      sessionId: getSessionId(),
+      userId,
+      providerId,
+      createdAt: serverTimestamp(),
     }
+    
+    await addDoc(collection(db, CLICKS_COLLECTION), clickEvent)
   } catch (error) {
     console.error('Error tracking provider click:', error)
     // Don't fail the user's navigation if tracking fails
@@ -237,7 +270,7 @@ export async function trackProviderClick(
  */
 export function storeTrackingCode(trackingCode: string): void {
   if (typeof sessionStorage === 'undefined') return
-  sessionStorage.setItem('whichmap_current_tracking_code', trackingCode)
+  sessionStorage.setItem(TRACKING_CODE_KEY, trackingCode)
 }
 
 /**
@@ -245,7 +278,7 @@ export function storeTrackingCode(trackingCode: string): void {
  */
 export function getCurrentTrackingCode(): string | null {
   if (typeof sessionStorage === 'undefined') return null
-  return sessionStorage.getItem('whichmap_current_tracking_code')
+  return sessionStorage.getItem(TRACKING_CODE_KEY)
 }
 
 /**
@@ -253,6 +286,5 @@ export function getCurrentTrackingCode(): string | null {
  */
 export function clearTrackingCode(): void {
   if (typeof sessionStorage === 'undefined') return
-  sessionStorage.removeItem('whichmap_current_tracking_code')
+  sessionStorage.removeItem(TRACKING_CODE_KEY)
 }
-

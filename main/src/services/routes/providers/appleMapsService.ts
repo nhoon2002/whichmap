@@ -13,24 +13,9 @@
 
 import { getAppleMapsAccessToken } from '@/lib/appleJWT'
 import type { Location, ProviderRouteResponse, RouteOptions, RawRouteData, Coordinates } from '@/types'
+import type { AppleEtaResponse } from '@/types/appleMaps'
 
 const APPLE_MAPS_API_BASE = 'https://maps-api.apple.com/v1'
-
-/**
- * Apple Maps ETA response structure
- */
-interface AppleEtaResponse {
-  etas: Array<{
-    expectedTravelTimeSeconds: number
-    distanceMeters: number
-    transportType?: string
-    staticTravelTimeSeconds?: number
-    destination?: {
-      latitude: number
-      longitude: number
-    }
-  }>
-}
 
 /**
  * Get route from Apple Maps Server API

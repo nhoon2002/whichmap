@@ -74,7 +74,7 @@ export async function getRoute(
       destination: formatLocation(destination),
       travelMode: 'DRIVE' as const,
       routingPreference: 'TRAFFIC_AWARE_OPTIMAL' as const, // Use traffic data for best ETA
-      computeAlternativeRoutes: true, // Get multiple route options
+      computeAlternativeRoutes: false, // Only get the fastest route
       routeModifiers: {
         avoidTolls: options.avoid === 'tolls',
         avoidHighways: options.avoid === 'highways',
