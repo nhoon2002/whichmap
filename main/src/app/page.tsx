@@ -337,6 +337,13 @@ export default function Home() {
       <footer className="mt-auto border-t border-neutral-200 pt-8 pb-8">
         <Container>
           <div className="flex flex-col items-center gap-6">
+            {/* Signed in status */}
+            {user && (
+              <p className="text-sm text-neutral-500">
+                Signed in as: <span className="text-neutral-700">{user.email}</span>
+              </p>
+            )}
+
             {/* Footer Links */}
             <div className="flex items-center gap-6">
               <a

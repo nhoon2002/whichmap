@@ -49,14 +49,9 @@ export function Header() {
             {loading ? (
               <div className="h-9 w-20 animate-pulse rounded-full bg-neutral-200" />
             ) : user ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-neutral-600 hidden sm:inline">
-                  {user.email}
-                </span>
-                <Button onClick={handleSignOut}>
-                  Sign Out
-                </Button>
-              </div>
+              <Button onClick={handleSignOut}>
+                Sign Out
+              </Button>
             ) : (
               pathname !== '/login' && (
                 <Link href="/login">
