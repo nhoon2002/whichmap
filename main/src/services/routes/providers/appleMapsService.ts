@@ -200,7 +200,7 @@ function formatDistance(meters: number): string {
 }
 
 /**
- * Get multiple ETAs with different transport types
+ * TODO: Get multiple ETAs with different transport types
  */
 export async function getRouteVariants(origin: Location, destination: Location) {
   const variants = await Promise.allSettled([

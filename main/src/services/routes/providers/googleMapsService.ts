@@ -206,7 +206,7 @@ function formatDistance(meters: number): string {
 }
 
 /**
- * Get multiple routes with different options (e.g., avoid highways, tolls)
+ * TODO: Get multiple routes with different options (e.g., avoid highways, tolls)
  */
 export async function getRouteVariants(origin: Location, destination: Location) {
   const variants = await Promise.allSettled([
