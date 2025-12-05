@@ -11,8 +11,8 @@ export default function PrivacyPage() {
   const lastUpdated = 'December 3, 2024'
 
   return (
-    <main className="flex-auto">
-        <Container className="mt-8 sm:mt-10 lg:mt-12 mb-24">
+    <main className="flex-auto pt-[calc(4rem+env(safe-area-inset-top,0px))] sm:pt-[calc(5.5rem+env(safe-area-inset-top,0px))]">
+      <Container className="mt-8 sm:mt-10 lg:mt-12 mb-24">
         <FadeIn animate>
           <div className="max-w-2xl mx-auto">
             <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950">

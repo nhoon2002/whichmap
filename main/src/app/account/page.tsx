@@ -166,7 +166,7 @@ export default function AccountPage() {
   const canResetPassword = isEmailPasswordUser(user)
 
   return (
-    <main className="flex-auto">
+    <main className="flex-auto pt-[calc(4rem+env(safe-area-inset-top,0px))] sm:pt-[calc(5.5rem+env(safe-area-inset-top,0px))]">
         <Container className="mt-8 sm:mt-10 lg:mt-12">
           <FadeIn animate>
             <div className="max-w-2xl mx-auto">

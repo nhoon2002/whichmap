@@ -158,8 +158,8 @@ export default function Home() {
   const fastest = findFastestRoute(filteredResults)
 
   return (
-    <main className="flex-auto flex flex-col">
-      <Container className="mt-16 sm:mt-20 lg:mt-12 flex-1">
+    <main className="flex-auto flex flex-col pt-[calc(4rem+env(safe-area-inset-top,0px))] sm:pt-[calc(5.5rem+env(safe-area-inset-top,0px))]">
+      <Container className="mt-8 sm:mt-10 lg:mt-12 flex-1">
         {/* Mobile: Stack vertically, Desktop: Split 50/50 */}
         <div className="lg:grid lg:grid-cols-2 lg:gap-16 xl:gap-20 lg:min-h-[calc(100vh-8rem)]">
           {/* Left side: Form and Header */}
