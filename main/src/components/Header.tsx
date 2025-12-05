@@ -23,7 +23,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+    <header className="fixed top-[env(safe-area-inset-top), 0] left-0 right-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <Container>
         <nav className="flex items-center justify-between py-3 sm:py-6">
           {/* Logo/Brand */}
