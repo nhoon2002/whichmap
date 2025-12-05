@@ -12,17 +12,17 @@ export default function PrivacyPage() {
 
   return (
     <main className="flex-auto">
-      <Container className="mt-24 sm:mt-32 lg:mt-40 mb-24">
+        <Container className="mt-8 sm:mt-10 lg:mt-12 mb-24">
         <FadeIn animate>
           <div className="max-w-2xl mx-auto">
-            <h1 className="font-display text-4xl font-medium tracking-tight text-neutral-950 sm:text-5xl">
+            <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950">
               Privacy Policy
             </h1>
-            <p className="mt-6 text-sm text-neutral-500">
+            <p className="mt-4 text-sm text-neutral-500">
               Last updated: {lastUpdated}
             </p>
 
-            <div className="mt-12 prose prose-neutral max-w-none">
+            <div className="mt-8 prose prose-neutral max-w-none">
               {/* Introduction */}
               <section className="mb-10">
                 <h2 className="font-display text-2xl font-semibold text-neutral-950 mb-4">

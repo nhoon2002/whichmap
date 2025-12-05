@@ -1,5 +1,6 @@
 import '@/styles/tailwind.css'
 import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { UserPreferencesProvider } from '@/contexts/UserPreferencesContext'
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <UserPreferencesProvider>
               <Header />
               {children}
+              <Footer />
             </UserPreferencesProvider>
           </QueryProvider>
         </ErrorBoundary>

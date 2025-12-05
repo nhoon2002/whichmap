@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
 import { Container } from '@/components/Container'
 import { FadeIn, FadeInStagger } from '@/components/FadeIn'
@@ -332,59 +333,6 @@ export default function Home() {
           </div>
         </div>
       </Container>
-
-      {/* Footer */}
-      <footer className="mt-auto border-t border-neutral-200 pt-8 pb-8">
-        <Container>
-          <div className="flex flex-col items-center gap-6">
-            {/* Signed in status */}
-            {user && (
-              <p className="text-sm text-neutral-500">
-                Signed in as: <span className="text-neutral-700">{user.email}</span>
-              </p>
-            )}
-
-            {/* Footer Links */}
-            <div className="flex items-center gap-6">
-              <a
-                href="/support"
-                className="text-sm text-neutral-600 hover:text-neutral-950 transition"
-              >
-                Support
-              </a>
-              <span className="text-neutral-300">•</span>
-              <a
-                href="/privacy"
-                className="text-sm text-neutral-600 hover:text-neutral-950 transition"
-              >
-                Privacy Policy
-              </a>
-            </div>
-
-            {/* Copyright */}
-            <div className="text-center text-sm text-neutral-500">
-              <p>© {new Date().getFullYear()} WhichMap. All rights reserved.</p>
-            </div>
-
-            {/* Coffee Support - Temporarily hidden
-            <div className="flex flex-col items-center gap-3 text-center">
-              <p className="text-sm text-neutral-600">
-                Enjoying WhichMap? Support the project
-              </p>
-              <a
-                href="https://buymeacoffee.com/whichmap"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-neutral-900 transition-all hover:bg-amber-500 hover:shadow-md hover:scale-105"
-              >
-                <span className="text-base">☕</span>
-                Buy Me a Coffee
-              </a>
-            </div>
-            */}
-          </div>
-        </Container>
-      </footer>
     </main>
   )
 }

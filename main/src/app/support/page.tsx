@@ -10,17 +10,17 @@ export const metadata: Metadata = {
 export default function SupportPage() {
   return (
     <main className="flex-auto">
-      <Container className="mt-24 sm:mt-32 lg:mt-40 mb-24">
+        <Container className="mt-8 sm:mt-10 lg:mt-12 mb-24">
         <FadeIn animate>
           <div className="max-w-2xl mx-auto">
-            <h1 className="font-display text-4xl font-medium tracking-tight text-neutral-950 sm:text-5xl">
+            <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950">
               Support
             </h1>
-            <p className="mt-6 text-lg text-neutral-600">
+            <p className="mt-4 text-lg text-neutral-600">
               Need help with WhichMap? We're here to assist you.
             </p>
 
-            <div className="mt-16 space-y-12">
+            <div className="mt-8 space-y-12">
               {/* Contact Section */}
               <section>
                 <h2 className="font-display text-2xl font-semibold text-neutral-950">

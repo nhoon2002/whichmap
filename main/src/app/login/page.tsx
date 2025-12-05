@@ -7,19 +7,26 @@ import {
   signUpWithEmail,
   signInWithGoogle,
   onAuthChange,
+  sendPasswordReset,
 } from '@/services/auth/authService'
 import { authConfig, hasSocialAuthEnabled } from '@/configs/auth'
 import { Container } from '@/components/Container'
 import { FadeIn } from '@/components/FadeIn'
 import { TextInput } from '@/components/TextInput'
 import { Button } from '@/components/Button'
+import { getUserFriendlyError } from '@/lib/errorMessages'
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
   const router = useRouter()
 
   // Redirect if already logged in
@@ -46,7 +53,7 @@ export default function LoginPage() {
       router.push('/')
     } catch (err: any) {
       console.error('Auth error:', err)
-      setError(err.message || 'Authentication failed')
+      setError(getUserFriendlyError(err))
     } finally {
       setLoading(false)
     }
@@ -61,15 +68,38 @@ export default function LoginPage() {
       router.push('/')
     } catch (err: any) {
       console.error('Google sign in error:', err)
-      setError(err.message || 'Google sign in failed')
+      setError(getUserFriendlyError(err))
     } finally {
       setLoading(false)
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setResetLoading(true)
+
+    try {
+      await sendPasswordReset(resetEmail)
+      setSuccess('Password reset email sent! Check your inbox for instructions.')
+      setResetEmail('')
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        setShowForgotPassword(false)
+        setSuccess('')
+      }, 5000)
+    } catch (err: any) {
+      console.error('Password reset error:', err)
+      setError(getUserFriendlyError(err))
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
   return (
     <main className="flex-auto">
-      <Container className="mt-24 sm:mt-32 lg:mt-40">
+        <Container className="mt-8 sm:mt-10 lg:mt-12">
         <FadeIn animate>
           <div className="max-w-md mx-auto">
             <h1 className="font-display text-5xl font-medium tracking-tight text-neutral-950 text-center">
@@ -81,41 +111,126 @@ export default function LoginPage() {
                 : 'Welcome back! Sign in to continue'}
             </p>
 
-            {/* Email/Password Form */}
-            <form onSubmit={handleEmailAuth} className="mt-16">
-              <div className="isolate -space-y-px rounded-2xl bg-white">
-                <TextInput
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-                <TextInput
-                  label="Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                />
-              </div>
+            {/* Forgot Password Form */}
+            {showForgotPassword ? (
+              <form onSubmit={handleForgotPassword} className="mt-16">
+                <div className="rounded-2xl bg-white p-6 border-2 border-neutral-200">
+                  <h2 className="text-lg font-semibold text-neutral-950 mb-2">
+                    Reset Password
+                  </h2>
+                  <p className="text-sm text-neutral-600 mb-4">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                  
+                  <TextInput
+                    label="Email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => {
+                      setResetEmail(e.target.value)
+                      setError('')
+                    }}
+                    required
+                    autoComplete="off"
+                    autoFocus
+                  />
 
-              {error && (
-                <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-                  {error}
+                  {error && (
+                    <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                      {error}
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
+                      {success}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                    <Button
+                      type="submit"
+                      className="flex-1 justify-center"
+                      disabled={resetLoading || !resetEmail}
+                    >
+                      {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false)
+                        setResetEmail('')
+                        setError('')
+                        setSuccess('')
+                      }}
+                      className="flex-1 justify-center bg-neutral-200 hover:bg-neutral-300 text-neutral-950"
+                      disabled={resetLoading}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              )}
+              </form>
+            ) : (
+              /* Email/Password Form */
+              <form onSubmit={handleEmailAuth} className="mt-16">
+                <div className="isolate -space-y-px rounded-2xl bg-white">
+                  <TextInput
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setError('')
+                    }}
+                    required
+                    autoComplete="off"
+                  />
+                  <TextInput
+                    label="Password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setError('')
+                    }}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
 
-              <Button
-                type="submit"
-                className="mt-10 w-full justify-center"
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
-              </Button>
-            </form>
+                {/* Forgot Password Link - Only show on Sign In */}
+                {!isSignUp && (
+                  <div className="mt-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(true)
+                        setResetEmail(email) // Pre-fill with current email
+                        setError('')
+                      }}
+                      className="text-sm text-neutral-600 hover:text-neutral-950 transition"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="mt-10 w-full justify-center"
+                  disabled={loading}
+                >
+                  {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+                </Button>
+              </form>
+            )}
 
             {/* Social Sign-In Options - Only show divider if any social auth is enabled */}
             {hasSocialAuthEnabled() && (

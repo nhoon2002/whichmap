@@ -1,6 +1,14 @@
 /**
  * User Model
  * Handles user data operations with Firestore
+ * 
+ * Firestore Document Structure:
+ * {
+ *   email: string | null              // null if deactivated (PII removed)
+ *   createdAt: Timestamp              // Account creation date
+ *   deactivatedAt: Timestamp | null   // Deactivation timestamp (null = active)
+ *   preferences: UserPreferences      // User preferences
+ * }
  */
 
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
@@ -12,12 +20,20 @@ export class User {
   email: string | null
   createdAt: Date
   preferences: UserPreferences
+  deactivatedAt?: Date | null
 
-  constructor(id: string, email: string | null, createdAt: Date, preferences: UserPreferences) {
+  constructor(
+    id: string, 
+    email: string | null, 
+    createdAt: Date, 
+    preferences: UserPreferences,
+    deactivatedAt?: Date | null
+  ) {
     this.id = id
     this.email = email
     this.createdAt = createdAt
     this.preferences = preferences
+    this.deactivatedAt = deactivatedAt
   }
 
   static async find(userId: string): Promise<User | null> {
@@ -27,11 +43,18 @@ export class User {
         return null
       }
       const data = userDoc.data()
+      
+      // Don't return deactivated users
+      if (data.deactivatedAt) {
+        return null
+      }
+      
       return new User(
         userDoc.id,
         data.email || null,
         data.createdAt?.toDate() || new Date(),
-        data.preferences || { navServices: {} }
+        data.preferences || { navServices: {} },
+        data.deactivatedAt?.toDate() || null
       )
     } catch (error) {
       console.error('Error fetching user:', error)

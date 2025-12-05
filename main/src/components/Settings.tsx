@@ -11,7 +11,15 @@ interface NavService {
   comingSoon?: boolean
 }
 
-export function Settings() {
+interface SettingsProps {
+  /**
+   * If true, shows settings inline (always visible)
+   * If false, shows as dropdown button (default)
+   */
+  inline?: boolean
+}
+
+export function Settings({ inline = false }: SettingsProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { preferences, toggleNavService, loading, isLoggedIn } = useUserPreferences()
@@ -39,6 +47,52 @@ export function Settings() {
     { key: 'waze', label: 'Waze', available: false, comingSoon: true },
   ]
 
+  // Inline mode - always show settings
+  if (inline) {
+    return (
+      <div>
+        {!isLoggedIn && (
+          <p className="text-xs text-neutral-600 mb-3 p-2 bg-neutral-50 rounded">
+            Sign in to save your preferences
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {navServices.map(({ key, label, available, comingSoon }) => (
+            <label
+              key={key}
+              className={`flex items-center gap-3 p-2 rounded transition ${
+                available 
+                  ? 'cursor-pointer hover:bg-neutral-50' 
+                  : 'cursor-not-allowed opacity-60'
+              }`}
+              title={!available ? 'Coming soon' : ''}
+            >
+              <input
+                type="checkbox"
+                checked={available ? preferences.navServices[key] : false}
+                onChange={() => available && toggleNavService(key)}
+                disabled={loading || !available}
+                className="h-4 w-4 rounded border-neutral-300 text-neutral-950 focus:ring-neutral-950 disabled:cursor-not-allowed"
+              />
+              <span className="text-sm text-neutral-700 flex-1">{label}</span>
+              {comingSoon && (
+                <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">
+                  Coming Soon
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+
+        <p className="text-xs text-neutral-500 mt-3">
+          Select which services to compare
+        </p>
+      </div>
+    )
+  }
+
+  // Dropdown mode (default) - for header
   return (
     <div className="relative" ref={dropdownRef}>
       <button

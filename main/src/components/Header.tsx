@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { onAuthChange, signOut } from '@/services/auth/authService'
+import { onAuthChange } from '@/services/auth/authService'
 import { Container } from '@/components/Container'
-import { Button } from '@/components/Button'
 import { Settings } from '@/components/Settings'
 import type { User } from 'firebase/auth'
 
@@ -23,14 +22,6 @@ export function Header() {
     return () => unsubscribe()
   }, [])
 
-  const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (error) {
-      console.error('Sign out error:', error)
-    }
-  }
-
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
       <Container>
@@ -40,22 +31,62 @@ export function Header() {
             WhichMap
           </Link>
 
-          {/* Settings & Auth Actions */}
-          <div className="flex items-center gap-4">
-            {/* Settings (always visible) */}
-            <Settings />
+          {/* Auth Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Settings (only for anonymous users - signed-in users see it in Account page) */}
+            {!loading && !user && <Settings />}
 
             {/* Auth Actions */}
             {loading ? (
-              <div className="h-9 w-20 animate-pulse rounded-full bg-neutral-200" />
+              <div className="h-9 w-9 animate-pulse rounded-full bg-neutral-200" />
             ) : user ? (
-              <Button onClick={handleSignOut}>
-                Sign Out
-              </Button>
+              <Link
+                href="/account"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-200 text-neutral-600 transition hover:bg-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:ring-offset-2 overflow-hidden"
+                aria-label="Account settings"
+              >
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || user.email || 'User'}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                )}
+              </Link>
             ) : (
               pathname !== '/login' && (
-                <Link href="/login">
-                  <Button>Sign In</Button>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-neutral-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-800 sm:px-4 sm:gap-2"
+                >
+                  <span>Sign In</span>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
                 </Link>
               )
             )}

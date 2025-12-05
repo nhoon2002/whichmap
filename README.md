@@ -71,14 +71,17 @@ main/src/
 │   │   ├── compare/route.ts      # Route comparison endpoint
 │   │   ├── geocode/route.ts      # Geocoding endpoint
 │   │   └── autocomplete/route.ts # Autocomplete endpoint
+│   ├── account/page.tsx          # Account management page
 │   ├── login/page.tsx            # Authentication page
+│   ├── privacy/page.tsx          # Privacy policy page
+│   ├── support/page.tsx          # Support page
 │   ├── layout.tsx                # Root layout
 │   └── page.tsx                  # Main comparison page
 ├── components/
 │   ├── AutocompleteInput.tsx     # Places autocomplete + search history
-│   ├── Header.tsx                # Navigation with auth
+│   ├── Header.tsx                # Navigation with auth (avatar icon for logged-in users)
 │   ├── ProviderCard.tsx          # Result card (Uber-style design)
-│   └── Settings.tsx              # User preferences
+│   └── Settings.tsx              # User preferences (moved to Account page for logged-in users)
 ├── contexts/
 │   └── UserPreferencesContext.tsx # Shared preferences state
 ├── hooks/
@@ -198,7 +201,7 @@ Stores user search history (logged-in users only; anonymous users use localStora
 
 **Behavior:**
 - Displays last 5 searches per user
-- Retains last 50 searches for analytics
+- Retains all searches for analytics (no limit)
 - Falls back to localStorage if Firestore fails
 
 #### `tracking_events` Collection
@@ -256,12 +259,31 @@ Tracks provider clicks (one document per click). Separate from events for easier
 ```typescript
 {
   trackingCode: string        // Links to parent tracking_events document
-  sessionId: string           // Denormalized for easier queries
+  sessionId: string           // Denormalized for easier queries (from localStorage)
   userId: string | null       // Denormalized for easier queries
   providerId: string          // 'google', 'apple', or 'waze'
   createdAt: Timestamp
 }
 ```
+
+#### `users` Collection
+
+Stores user account information and preferences.
+
+```typescript
+{
+  email: string               // User email (removed on account deletion)
+  createdAt: Timestamp        // Account creation date
+  deactivatedAt?: Timestamp | null  // Soft delete flag (null if active)
+  preferences?: {             // User preferences (navigation services)
+    google: boolean
+    apple: boolean
+    waze: boolean
+  }
+}
+```
+
+**Note:** Account deletion is a soft delete. The `deactivatedAt` timestamp is set, and the email is removed for privacy, but the user document is retained for analytics purposes.
 
 ### Required Indexes
 
@@ -302,7 +324,7 @@ Copy rules from `firestore.rules.example` to Firebase Console → Firestore → 
 ### Google Maps Routes API v2
 
 - Uses official `@googlemaps/routing` SDK
-- Traffic-aware routing with multiple alternatives
+- Traffic-aware routing (returns only the fastest route)
 - ~4s response time (vs ~500ms for legacy Directions API)
 
 ### Apple Maps Server API
@@ -315,8 +337,8 @@ Copy rules from `firestore.rules.example` to Firebase Console → Firestore → 
 The tracking system attributes user searches and provider clicks:
 
 1. **On search:** Creates a tracking event with search details and results
-2. **On click:** Updates the event with the selected provider
-3. **Storage:** Tracking code stored in sessionStorage for click attribution
+2. **On click:** Creates a separate document in `tracking_clicks` collection
+3. **Storage:** `sessionId` stored in localStorage for persistent session tracking across browser restarts
 
 ### Search History
 
@@ -407,7 +429,7 @@ Compare routes across all navigation providers.
 
 1. Search for a route
 2. Click a provider card
-3. Check Firestore `tracking_events` → verify `providerClicked` is set
+3. Check Firestore `tracking_clicks` collection → verify a new document was created with the clicked provider
 
 ### Test UTM Parameters
 
@@ -423,7 +445,7 @@ Tracking event should include UTM parameters.
 Firebase will show a link in the error. Click it to auto-create the index.
 
 ### Tracking code not found
-Check sessionStorage in browser DevTools for key: `whichmap_current_tracking_code`
+Check localStorage in browser DevTools for key: `whichmap_session_id`
 
 ### Search history not appearing
 - Logged-in: Check Firestore `search_history` collection
