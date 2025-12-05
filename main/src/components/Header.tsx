@@ -23,7 +23,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-[env(safe-area-inset-top,0px)] z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
       <Container>
         <nav className="flex items-center justify-between py-3 sm:py-6">
           {/* Logo/Brand */}
