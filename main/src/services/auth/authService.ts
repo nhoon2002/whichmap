@@ -12,6 +12,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  sendEmailVerification,
   deleteUser,
   fetchSignInMethodsForEmail,
   reauthenticateWithCredential,
@@ -35,21 +36,31 @@ import {
 import { auth, db } from '@/lib/firebase'
 import { User } from '@/models/User'
 import { getUserFriendlyError } from '@/lib/errorMessages'
+import { authConfig } from '@/configs/auth'
 
 /**
  * Sign in with email and password
  * @param {string} email
  * @param {string} password
  * @returns {Promise<object>} User credential
+ * @throws {Error} If email is not verified (when requireEmailVerification is enabled)
  */
 export async function signInWithEmail(email: string, password: string) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+  // Check email verification status if required
+  if (authConfig.emailPassword.requireEmailVerification && !userCredential.user.emailVerified) {
+    // Sign out the user since they haven't verified their email
+    await firebaseSignOut(auth)
+    throw new Error('Please verify your email before signing in. Check your inbox for the verification link.')
+  }
+
   return userCredential
 }
 
 /**
  * Sign up with email and password
- * Also creates user document in Firestore
+ * Also creates user document in Firestore and sends verification email
  * @param {string} email
  * @param {string} password
  * @returns {Promise<object>} User credential
@@ -59,6 +70,11 @@ export async function signUpWithEmail(email: string, password: string) {
 
   // Create user document in Firestore
   await User.create(userCredential.user.uid, userCredential.user.email)
+
+  // Send verification email if required
+  if (authConfig.emailPassword.requireEmailVerification) {
+    await sendEmailVerification(userCredential.user)
+  }
 
   return userCredential
 }
@@ -157,6 +173,43 @@ export function isAuthenticated(): boolean {
  */
 export async function sendPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email)
+}
+
+/**
+ * Send email verification to current user
+ * @returns {Promise<void>}
+ * @throws {Error} If no user is signed in
+ */
+export async function sendVerificationEmail(): Promise<void> {
+  const user = auth.currentUser
+  if (!user) {
+    throw new Error('No user is currently signed in')
+  }
+  if (user.emailVerified) {
+    throw new Error('Email is already verified')
+  }
+  await sendEmailVerification(user)
+}
+
+/**
+ * Check if current user's email is verified
+ * @returns {boolean}
+ */
+export function isEmailVerified(): boolean {
+  const user = auth.currentUser
+  return user?.emailVerified ?? false
+}
+
+/**
+ * Reload current user to get latest emailVerified status
+ * @returns {Promise<boolean>} Updated email verification status
+ */
+export async function refreshEmailVerificationStatus(): Promise<boolean> {
+  const user = auth.currentUser
+  if (!user) return false
+
+  await user.reload()
+  return user.emailVerified
 }
 
 /**

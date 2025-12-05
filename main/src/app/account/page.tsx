@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  onAuthChange, 
-  sendPasswordReset, 
+import {
+  onAuthChange,
+  sendPasswordReset,
   deleteUserAccount,
   getAuthProvider,
   isEmailPasswordUser,
@@ -21,6 +21,7 @@ import { Settings } from '@/components/Settings'
 import { TextInput } from '@/components/TextInput'
 import { getUserFriendlyError } from '@/lib/errorMessages'
 import type { User as FirebaseUser } from 'firebase/auth'
+import { authConfig } from '@/configs/auth'
 
 export default function AccountPage() {
   const [user, setUser] = useState<FirebaseUser | null>(null)
@@ -34,13 +35,23 @@ export default function AccountPage() {
   const [needsReauth, setNeedsReauth] = useState(false)
   const router = useRouter()
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated or email not verified
   useEffect(() => {
     const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
       if (!currentUser) {
         router.push('/login')
         return
       }
+
+      // Redirect to verification page if email is not verified
+      if (
+        authConfig.emailPassword.requireEmailVerification &&
+        !currentUser.emailVerified
+      ) {
+        router.push('/verify-email')
+        return
+      }
+
       setUser(currentUser)
       loadUserData(currentUser)
     })

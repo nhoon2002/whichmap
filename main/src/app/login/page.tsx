@@ -47,10 +47,16 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         await signUpWithEmail(email, password)
+        // Redirect to verification page if email verification is required
+        if (authConfig.emailPassword.requireEmailVerification) {
+          router.push('/verify-email')
+        } else {
+          router.push('/')
+        }
       } else {
         await signInWithEmail(email, password)
+        router.push('/')
       }
-      router.push('/')
     } catch (err: any) {
       console.error('Auth error:', err)
       setError(getUserFriendlyError(err))
@@ -198,6 +204,13 @@ export default function LoginPage() {
                     autoComplete="off"
                   />
                 </div>
+
+                {/* Email Verification Notice - Only show on Sign Up */}
+                {isSignUp && authConfig.emailPassword.requireEmailVerification && (
+                  <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    You'll need to verify your email address before you can sign in.
+                  </div>
+                )}
 
                 {/* Forgot Password Link - Only show on Sign In */}
                 {!isSignUp && (

@@ -18,6 +18,8 @@ import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
 import type { Location, Coordinates, Place } from '@/types'
 import type { User as FirebaseUser } from 'firebase/auth'
+import { authConfig } from '@/configs/auth'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
   const [startLocation, setStartLocation] = useState('')
@@ -39,6 +41,7 @@ export default function Home() {
   const resultsRef = useRef<HTMLDivElement>(null)
   const { preferences } = useUserPreferences()
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   // Use the route comparison hook with SUBMITTED values
   // This prevents the query from running on every keystroke
@@ -59,9 +62,18 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
       setUser(currentUser)
+
+      // Redirect to verification page if email is not verified
+      if (
+        currentUser &&
+        authConfig.emailPassword.requireEmailVerification &&
+        !currentUser.emailVerified
+      ) {
+        router.push('/verify-email')
+      }
     })
     return () => unsubscribe()
-  }, [])
+  }, [router])
 
   // Smooth scroll to results when they appear (mobile only)
   useEffect(() => {
