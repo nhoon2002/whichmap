@@ -8,6 +8,7 @@ import {
   refreshEmailVerificationStatus,
   signOut,
 } from '@/services/auth/authService'
+import { User } from '@/models/User'
 import { authConfig } from '@/configs/auth'
 import { Container } from '@/components/Container'
 import { FadeIn } from '@/components/FadeIn'
@@ -59,6 +60,11 @@ export default function VerifyEmailPage() {
     try {
       const isVerified = await refreshEmailVerificationStatus()
       if (isVerified) {
+        // Mark user as verified in Firestore (sets verifiedAt timestamp)
+        if (user?.uid) {
+          await User.markAsVerified(user.uid)
+        }
+
         setSuccess('Email verified! Redirecting...')
         setTimeout(() => {
           router.push('/')

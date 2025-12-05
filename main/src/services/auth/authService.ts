@@ -92,7 +92,7 @@ export async function signUpWithEmail(email: string, password: string) {
  */
 export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider()
-  
+
   try {
     const userCredential = await signInWithPopup(auth, provider)
 
@@ -101,6 +101,9 @@ export async function signInWithGoogle() {
     if (!existingUser) {
       await User.create(userCredential.user.uid, userCredential.user.email)
     }
+
+    // Google OAuth users have verified emails - mark as verified in Firestore
+    await User.markAsVerified(userCredential.user.uid)
 
     return userCredential
   } catch (error: unknown) {
