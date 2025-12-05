@@ -6,14 +6,15 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     // Load the deployed website directly in the WebView
-    url: 'https://whichmap.xyz',
-    cleartext: false,
+    // For local development, use localhost. For production, use 'https://whichmap.xyz'
+    url: 'http://localhost:3000',
+    cleartext: true, // Allow HTTP for localhost
   },
   ios: {
     // Allow navigation to external URLs for map deep links
     allowsLinkPreview: true,
     scrollEnabled: true,
-    contentInset: 'automatic',
+    contentInset: 'never',
     // Handle safe area properly
     preferredContentMode: 'mobile',
   },
