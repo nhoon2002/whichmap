@@ -29,8 +29,8 @@ export function getUserFriendlyError(error: unknown): string {
     'auth/cancelled-popup-request': 'Sign-in was cancelled. Please try again.',
   }
 
-  if (err.code && errorMap[err.code]) {
-    return errorMap[err.code]
+  if (err.code && err.code in errorMap) {
+    return errorMap[err.code]!
   }
 
   // Fallback to original message if it exists, otherwise generic error
