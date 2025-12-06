@@ -26,7 +26,7 @@ export default function VerifyEmailPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthChange(async (currentUser: FirebaseUser | null) => {
       setUser(currentUser)
       setLoading(false)
 
@@ -38,6 +38,13 @@ export default function VerifyEmailPage() {
 
       // Redirect if email verification is not required
       if (!authConfig.emailPassword.requireEmailVerification) {
+        router.push('/')
+        return
+      }
+
+      // Check if user is a test user (test users skip verification)
+      const userModel = await User.find(currentUser.uid)
+      if (userModel?.isTestUser) {
         router.push('/')
         return
       }

@@ -14,6 +14,7 @@ import { ShareButton } from '@/components/ShareButton'
 import { addToSearchHistory } from '@/services/searchHistory/searchHistoryService'
 import { createTrackingEvent, storeTrackingCode, trackProviderClick, getCurrentTrackingCode } from '@/services/tracking/trackingService'
 import { onAuthChange } from '@/services/auth/authService'
+import { User } from '@/models/User'
 import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import { useRouteComparison } from '@/hooks/useRouteComparison'
 import type { Location, Coordinates, Place } from '@/types'
@@ -60,16 +61,22 @@ export default function Home() {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthChange(async (currentUser: FirebaseUser | null) => {
       setUser(currentUser)
 
-      // Redirect to verification page if email is not verified
-      if (
-        currentUser &&
-        authConfig.emailPassword.requireEmailVerification &&
-        !currentUser.emailVerified
-      ) {
-        router.push('/verify-email')
+      // Check if user is a test user (test users skip verification)
+      if (currentUser) {
+        const userModel = await User.find(currentUser.uid)
+        const isTest = userModel?.isTestUser || false
+
+        // Redirect to verification page if email is not verified (unless test user)
+        if (
+          authConfig.emailPassword.requireEmailVerification &&
+          !currentUser.emailVerified &&
+          !isTest
+        ) {
+          router.push('/verify-email')
+        }
       }
     })
     return () => unsubscribe()

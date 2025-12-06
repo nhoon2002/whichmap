@@ -37,16 +37,21 @@ export default function AccountPage() {
 
   // Redirect if not authenticated or email not verified
   useEffect(() => {
-    const unsubscribe = onAuthChange((currentUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthChange(async (currentUser: FirebaseUser | null) => {
       if (!currentUser) {
         router.push('/login')
         return
       }
 
-      // Redirect to verification page if email is not verified
+      // Check if user is a test user (test users skip verification)
+      const userModel = await User.find(currentUser.uid)
+      const isTest = userModel?.isTestUser || false
+
+      // Redirect to verification page if email is not verified (unless test user)
       if (
         authConfig.emailPassword.requireEmailVerification &&
-        !currentUser.emailVerified
+        !currentUser.emailVerified &&
+        !isTest
       ) {
         router.push('/verify-email')
         return

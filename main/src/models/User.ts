@@ -8,6 +8,7 @@
  *   createdAt: Timestamp              // Account creation date
  *   verifiedAt: Timestamp | null      // Email verification timestamp (null = not verified)
  *   deactivatedAt: Timestamp | null   // Deactivation timestamp (null = active)
+ *   isTestUser: boolean               // If true, skip email verification requirement
  *   preferences: UserPreferences      // User preferences
  * }
  */
@@ -23,6 +24,7 @@ export class User {
   verifiedAt: Date | null
   preferences: UserPreferences
   deactivatedAt?: Date | null
+  isTestUser: boolean
 
   constructor(
     id: string,
@@ -30,7 +32,8 @@ export class User {
     createdAt: Date,
     verifiedAt: Date | null,
     preferences: UserPreferences,
-    deactivatedAt?: Date | null
+    deactivatedAt?: Date | null,
+    isTestUser: boolean = false
   ) {
     this.id = id
     this.email = email
@@ -38,6 +41,7 @@ export class User {
     this.verifiedAt = verifiedAt
     this.preferences = preferences
     this.deactivatedAt = deactivatedAt
+    this.isTestUser = isTestUser
   }
 
   static async find(userId: string): Promise<User | null> {
@@ -59,7 +63,8 @@ export class User {
         data.createdAt?.toDate() || new Date(),
         data.verifiedAt?.toDate() || null,
         data.preferences || { navServices: {} },
-        data.deactivatedAt?.toDate() || null
+        data.deactivatedAt?.toDate() || null,
+        data.isTestUser || false
       )
     } catch (error) {
       console.error('Error fetching user:', error)
@@ -80,12 +85,13 @@ export class User {
       email,
       createdAt: serverTimestamp(),
       verifiedAt: null, // Set when user verifies email
+      isTestUser: false, // Default to false, can be set manually in Firestore
       preferences: defaultPreferences,
     }
 
     await setDoc(doc(db, 'users', userId), userData)
 
-    return new User(userId, email, new Date(), null, defaultPreferences)
+    return new User(userId, email, new Date(), null, defaultPreferences, undefined, false)
   }
 
   async updatePreferences(newPreferences: Partial<UserPreferences>): Promise<void> {

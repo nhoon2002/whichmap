@@ -39,20 +39,43 @@ import { getUserFriendlyError } from '@/lib/errorMessages'
 import { authConfig } from '@/configs/auth'
 
 /**
+ * Check if current user is a test user (skips email verification)
+ * @returns {Promise<boolean>} True if user is a test user
+ */
+export async function isTestUser(): Promise<boolean> {
+  const user = auth.currentUser
+  if (!user) return false
+
+  try {
+    const userModel = await User.find(user.uid)
+    return userModel?.isTestUser || false
+  } catch (error) {
+    console.error('Error checking if user is test user:', error)
+    return false
+  }
+}
+
+/**
  * Sign in with email and password
  * @param {string} email
  * @param {string} password
  * @returns {Promise<object>} User credential
- * @throws {Error} If email is not verified (when requireEmailVerification is enabled)
+ * @throws {Error} If email is not verified (when requireEmailVerification is enabled and user is not a test user)
  */
 export async function signInWithEmail(email: string, password: string) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
 
   // Check email verification status if required
   if (authConfig.emailPassword.requireEmailVerification && !userCredential.user.emailVerified) {
-    // Sign out the user since they haven't verified their email
-    await firebaseSignOut(auth)
-    throw new Error('Please verify your email before signing in. Check your inbox for the verification link.')
+    // Check if user is a test user (test users skip verification)
+    const userModel = await User.find(userCredential.user.uid)
+    const isTest = userModel?.isTestUser || false
+
+    if (!isTest) {
+      // Sign out the user since they haven't verified their email
+      await firebaseSignOut(auth)
+      throw new Error('Please verify your email before signing in. Check your inbox for the verification link.')
+    }
   }
 
   return userCredential
