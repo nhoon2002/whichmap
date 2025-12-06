@@ -4,10 +4,12 @@
  */
 
 import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 import { Share } from '@capacitor/share'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
+import { checkAndReload, storeVersion, fetchCurrentVersion } from '@/services/version/versionService'
 
 /**
  * Check if running in a native Capacitor app
@@ -157,16 +159,41 @@ export const canShare = (): boolean => {
 }
 
 /**
+ * Setup app resume listener to check for updates
+ * When app comes back from background, check if new version is available
+ */
+export const setupAppResumeListener = (): void => {
+  if (!isNativeApp()) return
+
+  App.addListener('appStateChange', async ({ isActive }) => {
+    if (isActive) {
+      console.log('App resumed - checking for updates...')
+      // Check for updates when app comes to foreground
+      await checkAndReload()
+    }
+  })
+}
+
+/**
  * Initialize Capacitor features
  * Call this on app startup
  */
 export const initializeCapacitor = async (): Promise<void> => {
   if (!isNativeApp()) return
-  
+
   try {
     // Configure status bar
     await configureStatusBar()
-    
+
+    // Setup app resume listener for auto-updates
+    setupAppResumeListener()
+
+    // Store current version on first load
+    const currentVersion = await fetchCurrentVersion()
+    if (currentVersion) {
+      storeVersion(currentVersion.hash)
+    }
+
     // Hide splash screen after a short delay to ensure content is rendered
     setTimeout(async () => {
       await hideSplashScreen()
