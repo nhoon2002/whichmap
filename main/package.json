@@ -21,6 +21,7 @@
     "@capacitor/splash-screen": "^7.0.3",
     "@capacitor/status-bar": "^7.0.3",
     "@googlemaps/routing": "^2.1.1",
+    "@next/third-parties": "^16.0.8",
     "@tailwindcss/postcss": "^4.1.12",
     "@tanstack/react-query": "^5.90.7",
     "@upstash/ratelimit": "^2.0.7",

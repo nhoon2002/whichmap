@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { UserPreferencesProvider } from '@/contexts/UserPreferencesContext'
 import { CapacitorInit } from '@/components/CapacitorInit'
+import { GoogleAnalyticsComponent } from '@/components/GoogleAnalytics'
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             </UserPreferencesProvider>
           </QueryProvider>
         </ErrorBoundary>
+        <GoogleAnalyticsComponent />
       </body>
     </html>
   )

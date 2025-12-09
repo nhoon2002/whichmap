@@ -153,6 +153,10 @@ main/src/
    APPLE_MAPS_TEAM_ID=your_team_id
    APPLE_MAPS_KEY_ID=your_key_id
    APPLE_MAPS_PRIVATE_KEY=your_private_key_contents
+
+   # Google Analytics (client-side) - Optional
+   # Format: G-XXXXXXXXXX (e.g., G-ABC123XYZ)
+   NEXT_PUBLIC_GA_MEASUREMENT_ID=your_google_analytics_measurement_id
    ```
 
 4. **Run development server**
