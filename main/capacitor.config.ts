@@ -5,12 +5,17 @@ const config: CapacitorConfig = {
   appName: 'WhichMap',
   webDir: 'out',
   server: {
-    // Load the deployed website directly in the WebView
-    // For local development, use localhost. For production, use 'https://whichmap.xyz'
-    // url: 'http://localhost:3000',
-    // cleartext: true, // Allow HTTP for localhost
-    url: 'https://whichmap.xyz',
-    cleartext: false,
+    // Automatically detect localhost based on environment
+    // Set CAPACITOR_USE_LOCALHOST=true or NODE_ENV=development to use localhost
+    // Otherwise, use production URL
+    url:
+      process.env.CAPACITOR_USE_LOCALHOST === 'true' ||
+      process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : 'https://whichmap.xyz',
+    cleartext:
+      process.env.CAPACITOR_USE_LOCALHOST === 'true' ||
+      process.env.NODE_ENV === 'development',
   },
   ios: {
     // Allow navigation to external URLs for map deep links

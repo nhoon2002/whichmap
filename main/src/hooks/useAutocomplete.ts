@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getAutocompletePredictions, getPlaceDetails } from '@/services/geocoding/autocompleteService'
+import { getAutocompletePredictions, getPlaceDetails, type AutocompleteOptions } from '@/services/geocoding/autocompleteService'
 import type { AutocompletePrediction, Place } from '@/types'
 
 /**
@@ -13,6 +13,11 @@ import type { AutocompletePrediction, Place } from '@/types'
 interface UseAutocompleteOptions {
   debounceMs?: number
   minChars?: number
+  biasLocation?: {
+    lat: number
+    lng: number
+  }
+  radius?: number
 }
 
 /**
@@ -42,7 +47,7 @@ interface UseAutocompleteReturn {
  * Hook for address autocomplete functionality
  */
 export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutocompleteReturn {
-  const { debounceMs = 300, minChars = 2 } = options
+  const { debounceMs = 300, minChars = 2, biasLocation, radius } = options
 
   const [input, setInput] = useState('')
   const [predictions, setPredictions] = useState<AutocompletePrediction[]>([])
@@ -79,7 +84,17 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
     // Debounce the API call
     debounceTimer.current = setTimeout(async () => {
       try {
-        const results = await getAutocompletePredictions(input)
+        const autocompleteOptions: AutocompleteOptions = {}
+
+        // Add location biasing if provided
+        if (biasLocation) {
+          autocompleteOptions.biasLocation = biasLocation
+          if (radius) {
+            autocompleteOptions.radius = radius
+          }
+        }
+
+        const results = await getAutocompletePredictions(input, autocompleteOptions)
         setPredictions(results)
         setShowDropdown(results.length > 0)
       } catch (error) {
@@ -96,7 +111,7 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
         clearTimeout(debounceTimer.current)
       }
     }
-  }, [input, debounceMs, minChars])
+  }, [input, debounceMs, minChars, biasLocation, radius])
 
   // Handle input change
   const handleInputChange = useCallback((value: string, skipAutocomplete = false) => {

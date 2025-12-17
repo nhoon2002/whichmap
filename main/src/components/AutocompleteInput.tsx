@@ -9,6 +9,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { useAutocomplete } from '@/hooks/useAutocomplete'
 import { getSearchHistory, type SearchHistoryItem } from '@/services/searchHistory/searchHistoryService'
+import { getCurrentPosition } from '@/services/geolocation/geolocationService'
 import type { Place, AutocompletePrediction } from '@/types'
 
 export interface AutocompleteInputProps {
@@ -24,6 +25,11 @@ export interface AutocompleteInputProps {
   className?: string
   autoComplete?: string
   userId?: string | null  // Added for auth-aware history
+  biasLocation?: {
+    lat: number
+    lng: number
+  }  // Location to bias autocomplete results towards
+  radius?: number  // Search radius in meters (default 50km)
 }
 
 export function AutocompleteInput({
@@ -38,6 +44,8 @@ export function AutocompleteInput({
   showClearButton = true,
   className = '',
   userId = null,
+  biasLocation,
+  radius,
   ...props
 }: AutocompleteInputProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, keyof AutocompleteInputProps>) {
   const {
@@ -48,7 +56,7 @@ export function AutocompleteInput({
     handleInputChange,
     handleSelect,
     setShowDropdown,
-  } = useAutocomplete()
+  } = useAutocomplete({ biasLocation, radius })
 
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -189,24 +197,14 @@ export function AutocompleteInput({
 
   // Handle "Use Current Location" button click
   const handleUseCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser')
-      return
-    }
-
     setIsGettingLocation(true)
     setLocationError(null)
 
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        })
-      })
-
-      const { latitude, longitude } = position.coords
+      // Use platform-aware geolocation service
+      // Native iOS: Uses CoreLocation with persistent permissions
+      // Browser: Uses Geolocation API with 5-minute cache
+      const position = await getCurrentPosition()
 
       // Set display text to "Current Location" (skip autocomplete)
       handleInputChange('Current Location', true)
@@ -216,24 +214,24 @@ export function AutocompleteInput({
       onSelect?.({
         address: 'Current Location',
         coordinates: {
-          lat: latitude,
-          lng: longitude,
+          lat: position.lat,
+          lng: position.lng,
         },
         isCurrentLocation: true,
       })
 
       // Also call the optional callback
       onUseCurrentLocation?.({
-        lat: latitude,
-        lng: longitude,
+        lat: position.lat,
+        lng: position.lng,
       })
 
       setShowDropdown(false)
       setShowHistoryDropdown(false)
-      
+
       // Set flag to prevent autocomplete from opening on focus
       setJustSelectedFromHistory(true)
-      
+
       // Reset the flag after a short delay
       setTimeout(() => {
         setJustSelectedFromHistory(false)
@@ -241,20 +239,10 @@ export function AutocompleteInput({
     } catch (error: unknown) {
       console.error('Error getting location:', error)
 
-      // User-friendly error messages
-      let errorMessage = 'Unable to get your location'
-
-      // Type guard for GeolocationPositionError
-      if (error && typeof error === 'object' && 'code' in error) {
-        const geoError = error as { code: number }
-        if (geoError.code === 1) {
-          errorMessage = 'Location access denied. Please enable location permissions.'
-        } else if (geoError.code === 2) {
-          errorMessage = 'Location unavailable. Please try again.'
-        } else if (geoError.code === 3) {
-          errorMessage = 'Location request timed out. Please try again.'
-        }
-      }
+      // Use error message from service
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : 'Unable to get your location'
 
       setLocationError(errorMessage)
     } finally {

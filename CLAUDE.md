@@ -122,8 +122,10 @@ main/
 │   │   │   │   └── route.ts      # API endpoint for route comparison
 │   │   │   ├── geocode/
 │   │   │   │   └── route.ts      # Google Geocoding API endpoint
-│   │   │   └── autocomplete/
-│   │   │       └── route.ts      # Google Places Autocomplete API endpoint
+│   │   │   ├── autocomplete/
+│   │   │   │   └── route.ts      # Google Places Autocomplete API endpoint (with location biasing)
+│   │   │   └── ip-location/
+│   │   │       └── route.ts      # IP geolocation fallback API
 │   │   ├── login/
 │   │   │   └── page.tsx          # Authentication page (email/password + Google OAuth)
 │   │   ├── layout.tsx            # Root layout with Header component
@@ -151,7 +153,9 @@ main/
 │   │   │   └── authService.ts    # Firebase authentication service
 │   │   ├── geocoding/
 │   │   │   ├── geocodingService.ts    # Google Geocoding client service
-│   │   │   └── autocompleteService.ts # Google Places Autocomplete client service
+│   │   │   └── autocompleteService.ts # Google Places Autocomplete client service (with biasing)
+│   │   ├── geolocation/
+│   │   │   └── geolocationService.ts  # Platform-aware geolocation (native iOS + browser + IP fallback)
 │   │   ├── searchHistory/
 │   │   │   └── searchHistoryService.ts # Search history (local + Firestore)
 │   │   ├── tracking/
@@ -313,17 +317,51 @@ See `docs/api-usage.md` for complete API documentation including React Native ex
 - Click-outside to close
 - Prevents re-opening after selection (justSelected flag)
 - "Powered by Google" branding (required by ToS)
+- **Location biasing** - prioritizes results near opposite field or current location
 
 **User Flow:**
-1. User types → Autocomplete shows suggestions after 300ms
+1. User types → Autocomplete shows suggestions after 300ms (biased towards relevant location)
 2. User selects → Stores coordinates + formatted address
 3. Submit → Uses coordinates directly (no geocoding needed)
 4. Fallback → If user types manually, API geocodes server-side
+
+**Location Biasing Logic:**
+- **Start field**: Biases towards destination (if filled) → current location (if available) → no bias
+- **End field**: Biases towards start (if filled) → current location (if available) → no bias
+- Makes autocomplete context-aware and smarter at suggesting relevant POIs
 
 **Cost Optimization:**
 - Autocomplete: ~$2.83 per 1,000 sessions
 - Geocoding: $5.00 per 1,000 requests (fallback only)
 - React Query caches results for 5 minutes
+
+### Geolocation System
+
+**Platform-Aware Architecture:**
+- Native iOS app: Uses Capacitor Geolocation plugin (CoreLocation API)
+- Browser: Uses HTML5 Geolocation API with 5-minute caching
+- Automatic platform detection via `Capacitor.isNativePlatform()`
+
+**Location Fallback Chain:**
+1. **Device Geolocation** (GPS) - Highest priority, most accurate
+   - iOS native: Respects persistent "Allow While Using App" permission
+   - Browser: Uses cached position (10 min max) to avoid repeated prompts
+2. **IP Geolocation** - Fallback if device location denied
+   - Service: ip-api.com (45 req/min, unlimited daily)
+   - Accuracy: City-level
+   - No permissions required
+   - Supports IPv4 and IPv6
+3. **No Biasing** - Last resort, global US search
+
+**Benefits:**
+- **iOS App**: No more repeated permission prompts - permission persists across sessions
+- **Browser**: 5-minute cache reduces permission fatigue
+- **Universal**: IP fallback ensures autocomplete biasing always works
+
+**Implementation:**
+- Service: `src/services/geolocation/geolocationService.ts`
+- API Route: `src/app/api/ip-location/route.ts`
+- Package: `@capacitor/geolocation@7.1.7`
 
 ### Phase 2 - Infrastructure ✅ COMPLETE
 
@@ -342,10 +380,12 @@ See `docs/api-usage.md` for complete API documentation including React Native ex
 - ✅ Apple Maps Server API integration with JWT authentication (two-step: JWT → Access Token → ETA API)
 - ✅ Apple Maps /v1/etas endpoint (NOTE: Only provides distance + time, no route polylines)
 - ✅ Google Geocoding API integration (server-side)
-- ✅ Google Places Autocomplete with debouncing (300ms)
+- ✅ Google Places Autocomplete with location biasing (debounced 300ms)
 - ✅ AutocompleteInput component with dropdown UI + search history
 - ✅ Search history system (localStorage for anonymous, Firestore for logged-in)
-- ✅ "Use current location" feature (geolocation API)
+- ✅ Platform-aware geolocation system (Capacitor for iOS, browser fallback)
+- ✅ IP-based geolocation fallback (ip-api.com)
+- ✅ Smart autocomplete biasing (near start/destination/current location)
 - ✅ Commission tracking system (UTM attribution, click tracking)
 - ✅ Coordinate support for all providers (geocoding when needed)
 - ✅ Service layer architecture (routeService.ts with normalizeLocation)

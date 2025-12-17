@@ -21,6 +21,7 @@ Compare travel times across multiple navigation providers on a single screen.
 - **Firebase v12.5.0** (Authentication + Firestore)
 - **React Query v5** (API caching)
 - **@googlemaps/routing v2** (Google Maps Routes API)
+- **Capacitor 7.4** (iOS native bridge for geolocation)
 - **Zod v4** (input validation)
 - **Node.js 20.9.0+** required
 
@@ -31,13 +32,19 @@ Compare travel times across multiple navigation providers on a single screen.
 ### Implemented Features
 
 **Core UI**
-- Floating label form inputs with Google Places Autocomplete
+- Floating label form inputs with smart location-biased Google Places Autocomplete
 - Provider result cards with fastest route highlighting (Uber-style design)
 - Split-screen layout (desktop: inputs left, results right)
 - Loading states and error handling
 - Smooth scroll animations (Framer Motion)
 - Search history with "Use current location" feature
 - Official app icons (Google Maps, Apple Maps, Waze)
+
+**Geolocation Features**
+- Native iOS geolocation via Capacitor (respects persistent "Allow While Using App" permission)
+- Browser geolocation with 5-minute caching (reduces permission prompts)
+- IP-based geolocation fallback (city-level accuracy, no permissions required)
+- Smart autocomplete biasing (suggests POIs near start/destination or current location)
 
 **Infrastructure**
 - Firebase Authentication (email/password + Google OAuth)
@@ -55,7 +62,8 @@ Compare travel times across multiple navigation providers on a single screen.
 
 **API Integration**
 - Google Geocoding API (server-side)
-- Google Places Autocomplete (debounced)
+- Google Places Autocomplete with location biasing (debounced, 300ms)
+- IP geolocation API (ip-api.com, 45 req/min)
 - Service layer architecture
 - React Query caching (5 min)
 - Universal links for all providers
@@ -70,7 +78,8 @@ main/src/
 │   ├── api/
 │   │   ├── compare/route.ts      # Route comparison endpoint
 │   │   ├── geocode/route.ts      # Geocoding endpoint
-│   │   └── autocomplete/route.ts # Autocomplete endpoint
+│   │   ├── autocomplete/route.ts # Autocomplete endpoint (with location biasing)
+│   │   └── ip-location/route.ts  # IP geolocation fallback
 │   ├── account/page.tsx          # Account management page
 │   ├── login/page.tsx            # Authentication page
 │   ├── privacy/page.tsx          # Privacy policy page
@@ -91,7 +100,9 @@ main/src/
 │   ├── auth/authService.ts
 │   ├── geocoding/
 │   │   ├── geocodingService.ts
-│   │   └── autocompleteService.ts
+│   │   └── autocompleteService.ts   # Autocomplete with biasing
+│   ├── geolocation/
+│   │   └── geolocationService.ts    # Platform-aware geolocation (native iOS + browser)
 │   ├── searchHistory/
 │   │   └── searchHistoryService.ts  # Search history (local + Firestore)
 │   ├── tracking/

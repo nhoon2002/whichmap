@@ -6,15 +6,41 @@
 import type { AutocompletePrediction, Place } from '@/types'
 
 /**
- * Get autocomplete predictions for an input string
+ * Options for autocomplete predictions
  */
-export async function getAutocompletePredictions(input: string): Promise<AutocompletePrediction[]> {
+export interface AutocompleteOptions {
+  biasLocation?: {
+    lat: number
+    lng: number
+  }
+  radius?: number // in meters, max 50000 (50km)
+}
+
+/**
+ * Get autocomplete predictions for an input string
+ * Optionally bias results towards a specific location
+ */
+export async function getAutocompletePredictions(
+  input: string,
+  options?: AutocompleteOptions
+): Promise<AutocompletePrediction[]> {
   if (!input || input.length < 2) {
     return []
   }
 
   try {
     const params = new URLSearchParams({ input })
+
+    // Add location biasing if provided
+    if (options?.biasLocation) {
+      params.append('biasLat', options.biasLocation.lat.toString())
+      params.append('biasLng', options.biasLocation.lng.toString())
+
+      if (options.radius) {
+        params.append('radius', options.radius.toString())
+      }
+    }
+
     const response = await fetch(`/api/autocomplete?${params}`)
 
     if (!response.ok) {

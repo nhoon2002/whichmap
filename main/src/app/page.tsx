@@ -35,6 +35,9 @@ export default function Home() {
   const [startFullAddress, setStartFullAddress] = useState<string>('')
   const [endFullAddress, setEndFullAddress] = useState<string>('')
 
+  // Store user's current location for biasing (opportunistically, no forced prompt)
+  const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(null)
+
   // Store SUBMITTED values (only updated when button is clicked)
   const [submittedStart, setSubmittedStart] = useState<Location | null>(null)
   const [submittedEnd, setSubmittedEnd] = useState<Location | null>(null)
@@ -57,6 +60,60 @@ export default function Home() {
   // Initialize global helpers on mount
   useEffect(() => {
     initGlobalHelpers()
+  }, [])
+
+  // Get location for autocomplete biasing (device location or IP-based fallback)
+  useEffect(() => {
+    const getLocationForBiasing = async () => {
+      // Try device geolocation first (if permission already granted)
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCurrentLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            })
+          },
+          async () => {
+            // Fallback to IP-based geolocation
+            // This provides city-level accuracy without requiring permissions
+            try {
+              const response = await fetch('/api/ip-location')
+              if (response.ok) {
+                const data = await response.json()
+                console.log('IP geolocation data:', data)
+                if (data.coordinates) {
+                  setCurrentLocation(data.coordinates)
+                }
+              }
+            } catch (error) {
+              // Silently fail - biasing is optional
+              console.debug('IP geolocation unavailable:', error)
+            }
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 5000,
+            maximumAge: 600000, // Use cached position up to 10 minutes old
+          }
+        )
+      } else {
+        // No geolocation API, use IP-based fallback
+        try {
+          const response = await fetch('/api/ip-location')
+          if (response.ok) {
+            const data = await response.json()
+            if (data.coordinates) {
+              setCurrentLocation(data.coordinates)
+            }
+          }
+        } catch (error) {
+          console.debug('IP geolocation unavailable:', error)
+        }
+      }
+    }
+
+    getLocationForBiasing()
   }, [])
 
   // Listen to auth state changes
@@ -213,6 +270,7 @@ export default function Home() {
                     autoComplete="off"
                     className="rounded-t-2xl"
                     userId={user?.uid || null}
+                    biasLocation={endCoordinates || currentLocation || undefined}
                   />
                   <AutocompleteInput
                     label="Destination"
@@ -230,6 +288,7 @@ export default function Home() {
                     autoComplete="off"
                     className="rounded-b-2xl"
                     userId={user?.uid || null}
+                    biasLocation={startCoordinates || currentLocation || undefined}
                   />
                 </div>
 

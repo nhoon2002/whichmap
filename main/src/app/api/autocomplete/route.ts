@@ -44,6 +44,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const input = searchParams.get('input')
+    const biasLat = searchParams.get('biasLat')
+    const biasLng = searchParams.get('biasLng')
+    const radius = searchParams.get('radius') || '50000' // Default 50km radius
 
     if (!input || input.length < 2) {
       return NextResponse.json({ predictions: [] })
@@ -67,6 +70,13 @@ export async function GET(request: NextRequest) {
       // Restricted to US only
       components: 'country:us',
     })
+
+    // Add location biasing if coordinates provided
+    // This biases results towards a specific location (e.g., suggest POIs near destination)
+    if (biasLat && biasLng) {
+      params.append('location', `${biasLat},${biasLng}`)
+      params.append('radius', radius)
+    }
 
     const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`
 
