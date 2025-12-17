@@ -62,54 +62,24 @@ export default function Home() {
     initGlobalHelpers()
   }, [])
 
-  // Get location for autocomplete biasing (device location or IP-based fallback)
+  // Get location for autocomplete biasing (IP-based only, no permission prompts)
+  // Device location is only requested when user explicitly clicks "Use Current Location" button
   useEffect(() => {
     const getLocationForBiasing = async () => {
-      // Try device geolocation first (if permission already granted)
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setCurrentLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            })
-          },
-          async () => {
-            // Fallback to IP-based geolocation
-            // This provides city-level accuracy without requiring permissions
-            try {
-              const response = await fetch('/api/ip-location')
-              if (response.ok) {
-                const data = await response.json()
-                console.log('IP geolocation data:', data)
-                if (data.coordinates) {
-                  setCurrentLocation(data.coordinates)
-                }
-              }
-            } catch (error) {
-              // Silently fail - biasing is optional
-              console.debug('IP geolocation unavailable:', error)
-            }
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 5000,
-            maximumAge: 600000, // Use cached position up to 10 minutes old
+      // Use IP-based geolocation for autocomplete biasing
+      // This provides city-level accuracy without requiring permissions
+      try {
+        const response = await fetch('/api/ip-location')
+        if (response.ok) {
+          const data = await response.json()
+          console.log('IP geolocation data:', data)
+          if (data.coordinates) {
+            setCurrentLocation(data.coordinates)
           }
-        )
-      } else {
-        // No geolocation API, use IP-based fallback
-        try {
-          const response = await fetch('/api/ip-location')
-          if (response.ok) {
-            const data = await response.json()
-            if (data.coordinates) {
-              setCurrentLocation(data.coordinates)
-            }
-          }
-        } catch (error) {
-          console.debug('IP geolocation unavailable:', error)
         }
+      } catch (error) {
+        // Silently fail - biasing is optional
+        console.debug('IP geolocation unavailable:', error)
       }
     }
 
