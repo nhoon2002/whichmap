@@ -7,7 +7,16 @@
  */
 
 import { Capacitor } from '@capacitor/core'
-import { Geolocation as CapacitorGeolocation } from '@capacitor/geolocation'
+
+// Defensive import - plugin might not be available in older app builds
+let CapacitorGeolocation: typeof import('@capacitor/geolocation').Geolocation | null = null
+try {
+  const geolocationModule = require('@capacitor/geolocation')
+  CapacitorGeolocation = geolocationModule.Geolocation
+} catch (e) {
+  // Plugin not available - will fall back to browser geolocation
+  console.debug('Capacitor Geolocation plugin not available, using browser fallback')
+}
 
 export interface GeolocationPosition {
   lat: number
@@ -45,7 +54,8 @@ export async function getCurrentPosition(): Promise<GeolocationPosition> {
   const platform = Capacitor.getPlatform()
 
   // Create the request promise
-  if (isNative && (platform === 'ios' || platform === 'android')) {
+  // Only use native if plugin is available
+  if (isNative && (platform === 'ios' || platform === 'android') && CapacitorGeolocation) {
     pendingRequest = getCurrentPositionNative()
   } else {
     pendingRequest = getCurrentPositionBrowser()
@@ -66,6 +76,14 @@ export async function getCurrentPosition(): Promise<GeolocationPosition> {
  * Uses iOS CoreLocation APIs which properly handle "Allow While Using App" permission
  */
 async function getCurrentPositionNative(): Promise<GeolocationPosition> {
+  // Safety check - should never reach here if plugin unavailable, but just in case
+  if (!CapacitorGeolocation) {
+    throw {
+      code: 'NOT_SUPPORTED',
+      message: 'Capacitor Geolocation plugin not available',
+    } as GeolocationError
+  }
+
   try {
     // Check if we have permission
     const permissionStatus = await CapacitorGeolocation.checkPermissions()
@@ -166,7 +184,7 @@ async function getCurrentPositionBrowser(): Promise<GeolocationPosition> {
 export async function checkPermissionStatus(): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> {
   const isNative = Capacitor.isNativePlatform()
 
-  if (isNative) {
+  if (isNative && CapacitorGeolocation) {
     try {
       const status = await CapacitorGeolocation.checkPermissions()
       return status.location === 'granted' ? 'granted' : status.location === 'denied' ? 'denied' : 'prompt'
