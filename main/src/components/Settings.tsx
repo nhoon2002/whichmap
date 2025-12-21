@@ -44,6 +44,7 @@ export function Settings({ inline = false }: SettingsProps) {
   const navServices: NavService[] = [
     { key: 'google', label: 'Google Maps', available: true },
     { key: 'apple', label: 'Apple Maps', available: true },
+    { key: 'here', label: 'HERE WeGo', available: true },
     { key: 'waze', label: 'Waze', available: false, comingSoon: true },
   ]
 

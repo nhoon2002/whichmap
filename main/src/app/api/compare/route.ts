@@ -213,6 +213,7 @@ function formatProviderName(provider: string): string {
     google: 'Google Maps',
     apple: 'Apple Maps',
     waze: 'Waze',
+    here: 'HERE WeGo',
   }
   return names[provider] || provider
 }

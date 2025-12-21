@@ -66,6 +66,13 @@ export function useAutocomplete(options: UseAutocompleteOptions = {}): UseAutoco
       return
     }
 
+    // Skip autocomplete for "Current Location" placeholder text
+    if (input === 'Current Location') {
+      setPredictions([])
+      setShowDropdown(false)
+      return
+    }
+
     // Clear previous timer
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current)

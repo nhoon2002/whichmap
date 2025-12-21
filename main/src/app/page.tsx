@@ -72,7 +72,6 @@ export default function Home() {
         const response = await fetch('/api/ip-location')
         if (response.ok) {
           const data = await response.json()
-          console.log('IP geolocation data:', data)
           if (data.coordinates) {
             setCurrentLocation(data.coordinates)
           }

@@ -8,6 +8,7 @@
 import * as googleMapsService from './providers/googleMapsService'
 import * as appleMapsService from './providers/appleMapsService'
 import * as wazeService from './providers/wazeService'
+import * as hereMapsService from './providers/hereMapsService'
 import { geocodeAddress } from '../geocoding/geocodingService'
 import type {
   Location,
@@ -34,6 +35,12 @@ const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     id: 'apple',
     name: 'Apple Maps',
     service: appleMapsService as ProviderService,
+    hasAPI: true, // Full route API available
+  },
+  here: {
+    id: 'here',
+    name: 'HERE WeGo',
+    service: hereMapsService as ProviderService,
     hasAPI: true, // Full route API available
   },
   waze: {

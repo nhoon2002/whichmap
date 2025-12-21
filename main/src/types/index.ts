@@ -39,7 +39,7 @@ export interface Place {
  * Only includes currently implemented providers
  * TODO: Add 'tmap' | 'kakao' when implementing international providers
  */
-export type ProviderId = 'google' | 'apple' | 'waze'
+export type ProviderId = 'google' | 'apple' | 'waze' | 'here'
 
 /**
  * Route result from a navigation provider
@@ -107,6 +107,7 @@ export interface NavServices {
   google?: boolean
   apple?: boolean
   waze?: boolean
+  here?: boolean
 }
 
 /**

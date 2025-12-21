@@ -31,6 +31,7 @@ export function UserPreferencesProvider({ children }: UserPreferencesProviderPro
     navServices: {
       google: true,
       apple: true,
+      here: true, // HERE Maps with full API support
       waze: false, // Waze Transport SDK pending approval
     },
   }))

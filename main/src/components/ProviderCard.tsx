@@ -15,6 +15,7 @@ const getProviderIcon = (provider: string): string => {
   const normalizedProvider = provider.toLowerCase()
   if (normalizedProvider.includes('google')) return '/google-maps-icon.png'
   if (normalizedProvider.includes('apple')) return '/apple-maps-icon.png'
+  if (normalizedProvider.includes('here')) return '/here-maps-icon.png'
   if (normalizedProvider.includes('waze')) return '/waze-icon.png'
   return '/google-maps-icon.png'
 }
@@ -44,6 +45,13 @@ const getProviderColors = (provider: string, isFastest: boolean) => {
     return {
       bg: 'bg-white',
       text: 'text-gray-700',
+      ring: ''
+    }
+  }
+  if (normalizedProvider.includes('here')) {
+    return {
+      bg: 'bg-white',
+      text: 'text-teal-600',
       ring: ''
     }
   }
@@ -82,6 +90,7 @@ export function ProviderCard({
       // Determine provider ID from provider name
       const providerId = provider.toLowerCase().includes('google') ? 'google' :
                          provider.toLowerCase().includes('apple') ? 'apple' :
+                         provider.toLowerCase().includes('here') ? 'here' :
                          provider.toLowerCase().includes('waze') ? 'waze' : 'unknown'
       
       // Track asynchronously (don't block navigation)
