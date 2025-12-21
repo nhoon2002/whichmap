@@ -258,28 +258,29 @@ function formatDistance(meters: number): string {
 
 /**
  * Generate Universal Link for HERE Maps (RECOMMENDED)
- * Opens in HERE Maps app on mobile if installed, otherwise web
+ * Opens in HERE WeGo app on mobile if installed, otherwise web
+ * Format: https://share.here.com/r/{origin_lat},{origin_lng}/{dest_lat},{dest_lng}
  */
 export function getUniversalLink(origin: Location, destination: Location): string {
   const originStr = formatLocationForUrl(origin)
   const destinationStr = formatLocationForUrl(destination)
 
-  // HERE WeGo web interface for routing
-  // Format: https://wego.here.com/?map={lat},{lng},{zoom}&x=ep
-  // For routing: Use directions format
-  return `https://wego.here.com/directions/drive/${originStr}/${destinationStr}`
+  // HERE share.here.com deep link format
+  // This opens the HERE WeGo app on mobile, or web map if app not installed
+  return `https://share.here.com/r/${originStr}/${destinationStr}`
 }
 
 /**
  * Generate deep link URL for HERE Maps app
- * Opens in HERE Maps app on iOS/Android
- * Note: Universal Links are recommended over this
+ * Opens in HERE WeGo app on iOS/Android
+ * Note: Universal Links (share.here.com) are recommended over this
  */
 export function getDeepLinkUrl(origin: Location, destination: Location): string {
+  const originStr = formatLocationForUrl(origin)
   const destinationStr = formatLocationForUrl(destination)
 
-  // HERE Maps app deep link format
-  return `here.directions://v1.0/mylocation/${destinationStr}`
+  // Same as universal link - share.here.com works for both web and app
+  return `https://share.here.com/r/${originStr}/${destinationStr}`
 }
 
 /**
